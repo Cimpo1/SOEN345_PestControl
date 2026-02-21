@@ -1,34 +1,39 @@
-name: Coverage Report
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: ["main", "dev"]
+    branches: [main, dev]
   pull_request:
-    branches: ["main", "dev"]
+    branches: [main, dev]
+  workflow_dispatch:
 
 jobs:
-  backend-coverage:
+  backend-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
-
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: "21"
-          distribution: "temurin"
           cache: maven
 
-      - name: Test with Maven
-        run: mvn -B verify
+      - name: Run Spring Boot tests
+        run: mvn test -Dspring.profiles.active=test
+        working-directory: ./backend
 
-      - name: Upload Backend Coverage Report
-        uses: actions/upload-artifact@v4
+      - name: JaCoCo Coverage Report
+        if: github.event_name == 'pull_request'
+        uses: madrapps/jacoco-report@v1.7.2
         with:
-          name: backend-coverage-report
-          path: backend/target/site/jacoco/jacoco.xml
-          retention-days: 5
+          paths: backend/target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Coverage Report for Backend"
+          update-comment: true
+          min-coverage-overall: 80
+          min-coverage-changed-files: 80
