@@ -1,4 +1,4 @@
-package com.pestcontrol.backend.domain;
+package com.pestcontrol.backend.domain.enums;
 
 public enum Category {
     CONCERT,
