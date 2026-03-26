@@ -3,8 +3,6 @@ package com.pestcontrol.backend.domain;
 import com.pestcontrol.backend.domain.enums.Category;
 import com.pestcontrol.backend.domain.enums.EventStatus;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;

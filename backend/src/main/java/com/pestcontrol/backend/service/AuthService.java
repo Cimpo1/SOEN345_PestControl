@@ -1,6 +1,6 @@
 package com.pestcontrol.backend.service;
 
-import com.pestcontrol.backend.api.DTOs.RegisterRequest;
+import com.pestcontrol.backend.api.dto.RegisterRequest;
 import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.UserRole;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;

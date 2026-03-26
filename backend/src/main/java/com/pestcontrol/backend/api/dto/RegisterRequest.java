@@ -1,4 +1,4 @@
-package com.pestcontrol.backend.api.DTOs;
+package com.pestcontrol.backend.api.dto;
 
 public class RegisterRequest {
     public String fullName;
