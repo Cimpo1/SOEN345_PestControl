@@ -4,7 +4,6 @@ import com.pestcontrol.backend.api.DTOs.RegisterRequest;
 import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.UserRole;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 

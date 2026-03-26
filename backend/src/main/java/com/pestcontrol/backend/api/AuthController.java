@@ -1,9 +1,7 @@
 package com.pestcontrol.backend.api;
 
 import com.pestcontrol.backend.api.DTOs.RegisterRequest;
-import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.service.AuthService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;

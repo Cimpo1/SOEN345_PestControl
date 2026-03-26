@@ -1,5 +1,7 @@
-package com.pestcontrol.backend.domain;
+package com.pestcontrol.backend.unit.domain;
 
+import com.pestcontrol.backend.domain.Reservation;
+import com.pestcontrol.backend.domain.Ticket;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,5 +1,7 @@
-package com.pestcontrol.backend.domain;
+package com.pestcontrol.backend.unit.domain;
 
+import com.pestcontrol.backend.domain.Event;
+import com.pestcontrol.backend.domain.Location;
 import com.pestcontrol.backend.domain.enums.Category;
 import com.pestcontrol.backend.domain.enums.EventStatus;
 import org.junit.jupiter.api.BeforeEach;

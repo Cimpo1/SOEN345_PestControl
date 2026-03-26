@@ -2,8 +2,6 @@ package com.pestcontrol.backend.domain;
 
 import com.pestcontrol.backend.domain.enums.UserRole;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +27,6 @@ public class User {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "user_role", nullable = false)
     private UserRole userRole;
 

@@ -1,9 +1,10 @@
-package com.pestcontrol.backend.service;
+package com.pestcontrol.backend.unit.service;
 
 import com.pestcontrol.backend.api.DTOs.RegisterRequest;
 import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.UserRole;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
+import com.pestcontrol.backend.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

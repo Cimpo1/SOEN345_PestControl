@@ -1,5 +1,8 @@
-package com.pestcontrol.backend.domain;
+package com.pestcontrol.backend.unit.domain;
 
+import com.pestcontrol.backend.domain.Event;
+import com.pestcontrol.backend.domain.Reservation;
+import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.ReservationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

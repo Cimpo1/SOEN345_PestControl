@@ -34,7 +34,6 @@ public class Event {
     private OffsetDateTime endDateTime;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "category", nullable = false)
     private Category category;
 
@@ -42,7 +41,6 @@ public class Event {
     private BigDecimal basePrice;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false)
     private EventStatus status;
 

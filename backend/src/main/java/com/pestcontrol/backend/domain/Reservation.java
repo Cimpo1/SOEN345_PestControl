@@ -31,7 +31,6 @@ public class Reservation {
     private OffsetDateTime creationDate;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false)
     private ReservationStatus status;
 
