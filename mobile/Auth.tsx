@@ -24,7 +24,7 @@ export default function AuthPage() {
       <View style={styles.card}>
         <Image source={require('./assets/favicon.png')} style={{ width: 64, height: 64, alignSelf: 'center' }} />
 
-        {/* Tab Row */}
+         //Tab Switch
         <View style={styles.tabs}>
           {(["signin", "signup"] as Tab[]).map((t) => (
             <TouchableOpacity key={t} onPress={() => setTab(t)} style={[styles.tab, tab === t && styles.activeTab]}>
@@ -35,7 +35,7 @@ export default function AuthPage() {
           ))}
         </View>
 
-        {/* Fields */}
+        //Entries
         {tab === "signup" && (
           <TextInput
             placeholder="Name"
