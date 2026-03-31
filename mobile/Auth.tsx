@@ -7,6 +7,7 @@ import {
   TextInput,
   StyleSheet,
 } from "react-native";
+import { useAuth } from "./context/AuthContext";
 
 type Tab = "signin" | "signup";
 
@@ -19,6 +20,7 @@ interface FormData {
 }
 
 export default function AuthPage() {
+  const { login } = useAuth();
   const [tab, setTab] = useState<Tab>("signin");
   const [form, setForm] = useState<FormData>({
     fullName: "",
@@ -83,6 +85,7 @@ export default function AuthPage() {
         if (response.ok) {
           const { token, user } = await response.json();
           console.log("Login successful. Token:", token, "User:", user);
+          login(token);
 
         } else if (response.status === 400) {
           console.error("Login failed: missing credentials");
