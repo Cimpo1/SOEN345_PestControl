@@ -6,6 +6,12 @@ import com.pestcontrol.backend.domain.enums.UserRole;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.pestcontrol.backend.api.dto.LoginRequest;
+import com.pestcontrol.backend.api.dto.UserResponse;
+import com.pestcontrol.backend.api.dto.LoginResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import com.pestcontrol.backend.service.JWTService;
 
 @Service
 public class AuthService {
@@ -39,5 +45,27 @@ public class AuthService {
         user.setPasswordHash(passwordHash);
         user.setUserRole(UserRole.CUSTOMER);
         userRepository.save(user);
+    }
+
+    public LoginResponse login(LoginRequest request) {
+        if (request.email == null && request.phoneNumber == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing credentials");
+        }
+
+        User user;
+        if (request.email != null) {
+            user = userRepository.findByEmail(request.email)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+        } else {
+            user = userRepository.findByPhoneNumber(request.phoneNumber)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+        }
+
+        if (!passwordEncoder.matches(request.password, user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        }
+
+        String token = JWTService.generateToken(user);
+        return new LoginResponse(token, new UserResponse(user));
     }
 }
