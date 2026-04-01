@@ -30,7 +30,7 @@
 		<java.version>21</java.version>
 		 <sonar.organization>cimpo1</sonar.organization>
 		<sonar.cpd.exclusions>
-			src/main/java/com/company/backend/api/dto/*.java
+			src/main/java/com/pestcontrol/backend/api/dto/*.java
 		</sonar.cpd.exclusions>
 	</properties>
 	<dependencies>
