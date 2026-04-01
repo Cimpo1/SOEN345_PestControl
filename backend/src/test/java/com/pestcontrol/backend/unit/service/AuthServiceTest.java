@@ -215,9 +215,9 @@ class AuthServiceTest {
     @DisplayName("Should throw BAD_REQUEST when both email and phone are null")
     void testLoginFailsWithoutEmailOrPhone() {
         LoginRequest request = new LoginRequest();
-        request.email = null;
-        request.phoneNumber = null;
-        request.password = "anyPassword";
+        request.setEmail(null);
+        request.setPhoneNumber(null);
+        request.setPassword("anyPassword");
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> authService.login(request));
@@ -229,10 +229,10 @@ class AuthServiceTest {
     @DisplayName("Should throw UNAUTHORIZED when email not found")
     void testLoginFailsWithInvalidEmail() {
         LoginRequest request = new LoginRequest();
-        request.email = "invalid@example.com";
-        request.password = "password";
+        request.setEmail("invalid@example.com");
+        request.setPassword("password");
 
-        when(userRepository.findByEmail(request.email)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> authService.login(request));
@@ -244,11 +244,11 @@ class AuthServiceTest {
     @DisplayName("Should throw UNAUTHORIZED when phone not found")
     void testLoginFailsWithInvalidPhone() {
         LoginRequest request = new LoginRequest();
-        request.email = null;
-        request.phoneNumber = "0000000000";
-        request.password = "password";
+        request.setEmail(null);
+        request.setPhoneNumber("0000000000");
+        request.setPassword("password");
 
-        when(userRepository.findByPhoneNumber(request.phoneNumber)).thenReturn(Optional.empty());
+        when(userRepository.findByPhoneNumber(request.getPhoneNumber())).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> authService.login(request));
@@ -260,11 +260,11 @@ class AuthServiceTest {
     @DisplayName("Should throw UNAUTHORIZED when password does not match")
     void testLoginFailsWithIncorrectPassword() {
         LoginRequest request = new LoginRequest();
-        request.email = mockUser.getEmail();
-        request.password = "wrongPassword";
+        request.setEmail(mockUser.getEmail());
+        request.setPassword("wrongPassword");
 
         when(userRepository.findByEmail(mockUser.getEmail())).thenReturn(Optional.of(mockUser));
-        when(passwordEncoder.matches(request.password, mockUser.getPasswordHash())).thenReturn(false);
+        when(passwordEncoder.matches(request.getPassword(), mockUser.getPasswordHash())).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> authService.login(request));
@@ -276,11 +276,11 @@ class AuthServiceTest {
     @DisplayName("Should login successfully with email")
     void testLoginSuccessWithEmail() {
         LoginRequest request = new LoginRequest();
-        request.email = mockUser.getEmail();
-        request.password = "correctPassword";
+        request.setEmail(mockUser.getEmail());
+        request.setPassword("correctPassword");
 
         when(userRepository.findByEmail(mockUser.getEmail())).thenReturn(Optional.of(mockUser));
-        when(passwordEncoder.matches(request.password, mockUser.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.matches(request.getPassword(), mockUser.getPasswordHash())).thenReturn(true);
 
         try (MockedStatic<JWTService> jwtMock = mockStatic(JWTService.class)) {
             jwtMock.when(() -> JWTService.generateToken(mockUser)).thenReturn("mockToken");
@@ -288,8 +288,8 @@ class AuthServiceTest {
             LoginResponse response = authService.login(request);
 
             assertNotNull(response);
-            assertEquals("mockToken", response.token);
-            assertEquals(mockUser.getFullName(), response.user.fullName);
+            assertEquals("mockToken", response.getToken());
+            assertEquals(mockUser.getFullName(), response.getUser().getFullName());
         }
     }
 
@@ -297,12 +297,12 @@ class AuthServiceTest {
     @DisplayName("Should login successfully with phone")
     void testLoginSuccessWithPhone() {
         LoginRequest request = new LoginRequest();
-        request.email = null;
-        request.phoneNumber = mockUser.getPhoneNumber();
-        request.password = "correctPassword";
+        request.setEmail(null);
+        request.setPhoneNumber(mockUser.getPhoneNumber());
+        request.setPassword("correctPassword");
 
         when(userRepository.findByPhoneNumber(mockUser.getPhoneNumber())).thenReturn(Optional.of(mockUser));
-        when(passwordEncoder.matches(request.password, mockUser.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.matches(request.getPassword(), mockUser.getPasswordHash())).thenReturn(true);
 
         try (MockedStatic<JWTService> jwtMock = mockStatic(JWTService.class)) {
             jwtMock.when(() -> JWTService.generateToken(mockUser)).thenReturn("mockToken");
@@ -310,8 +310,8 @@ class AuthServiceTest {
             LoginResponse response = authService.login(request);
 
             assertNotNull(response);
-            assertEquals("mockToken", response.token);
-            assertEquals(mockUser.getFullName(), response.user.fullName);
+            assertEquals("mockToken", response.getToken());
+            assertEquals(mockUser.getFullName(), response.getUser().getFullName());
         }
     }
 }

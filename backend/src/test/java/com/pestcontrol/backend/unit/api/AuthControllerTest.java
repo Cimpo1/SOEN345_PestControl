@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class AuthControllerTest {
+class AuthControllerTest {
 
         @Mock
         private AuthService authService;
@@ -37,12 +37,11 @@ public class AuthControllerTest {
 
         verify(authService, times(1)).register(request);
     }
-
     @Test
     void shouldLoginUser() {
         LoginRequest request = new LoginRequest();
-        request.email = "test@email.com";
-        request.password = "password";
+        request.setEmail("test@email.com");
+        request.setPassword("password");
         User user = new User();
         UserResponse userResponse = new UserResponse(user);
 
@@ -53,7 +52,7 @@ public class AuthControllerTest {
         ResponseEntity<LoginResponse> response = authController.login(request);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("mock-jwt-token", response.getBody().token);
+        assertEquals("mock-jwt-token", response.getBody().getToken());
 
         verify(authService, times(1)).login(request);
     }

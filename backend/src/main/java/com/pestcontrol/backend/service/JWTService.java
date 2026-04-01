@@ -3,13 +3,15 @@ package com.pestcontrol.backend.service;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 
-import java.io.InputStream;
 import java.security.Key;
 import java.util.Date;
 
 import com.pestcontrol.backend.domain.User;
 
 public class JWTService {
+
+    private JWTService(){}
+
 
 
     private static final String PASS_PHRASE = "ILovePotatooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo";
@@ -28,7 +30,7 @@ public class JWTService {
                 .claim("phoneNumber", user.getPhoneNumber())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS256, key)
+                .signWith(key)
                 .compact();
     }
 
@@ -49,7 +51,7 @@ public class JWTService {
                     .parseClaimsJws(token)
                     .getBody();
         } catch (JwtException e) {
-            throw new RuntimeException("Invalid JWT token", e);
+            throw new JwtException("Invalid JWT token", e);
         }
     }
 

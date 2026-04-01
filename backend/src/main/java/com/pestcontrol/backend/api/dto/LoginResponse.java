@@ -1,11 +1,27 @@
 package com.pestcontrol.backend.api.dto;
 
 public class LoginResponse {
-    public String token;
-    public UserResponse user;
+    private String token;
+    private UserResponse user;
 
     public LoginResponse(String token, UserResponse user) {
         this.token = token;
+        this.user = user;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public UserResponse getUser() {
+        return user;
+    }
+
+    public void setUser(UserResponse user) {
         this.user = user;
     }
 }

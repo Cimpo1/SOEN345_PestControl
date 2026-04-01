@@ -4,6 +4,7 @@ import {
   Text,
   View,
   StyleSheet,
+  Button
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 
@@ -12,6 +13,12 @@ export default function HomePage() {
   return (
     <View style={styles.container}>
       <Text>Navigate your app!</Text>
+
+      <Button
+        title="Logout"
+        onPress={logout}
+      />
+
       <StatusBar style="auto" />
     </View>
   );
