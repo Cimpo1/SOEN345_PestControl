@@ -16,7 +16,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.pestcontrol.backend.api.dto.LoginRequest;
 import com.pestcontrol.backend.api.dto.LoginResponse;
-import com.pestcontrol.backend.api.dto.UserResponse;
 import com.pestcontrol.backend.service.JWTService;
 import org.mockito.MockedStatic;
 import org.springframework.http.HttpStatus;

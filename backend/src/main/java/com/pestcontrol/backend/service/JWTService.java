@@ -2,14 +2,20 @@ package com.pestcontrol.backend.service;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+
+import java.io.InputStream;
 import java.security.Key;
 import java.util.Date;
+
 import com.pestcontrol.backend.domain.User;
 
 public class JWTService {
 
-    private static final String passPhrase = "ILovePotatooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo";
-    private static final Key key = Keys.hmacShaKeyFor(passPhrase.getBytes());
+
+    private static final String PASS_PHRASE = "ILovePotatooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo";
+    @SuppressWarnings("java:S6437") //Suppress the warning coming from SonarQube because the password key is exposed as this program is
+    //for a school project and to not complicate the prep before loading the program
+    private static final Key key = Keys.hmacShaKeyFor(PASS_PHRASE.getBytes());
 
     private static final long EXPIRATION_TIME = 3600000;
 
