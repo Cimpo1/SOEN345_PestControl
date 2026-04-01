@@ -1,20 +1,20 @@
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import AuthPage from "./Auth";
+import HomePage from "./Home";
+
+function Navigator() {
+  const { currentScreen } = useAuth();
+
+  switch (currentScreen) {
+    case "Home": return <HomePage />;
+    default:     return <AuthPage />;
+  }
+}
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <AuthProvider>
+      <Navigator />
+    </AuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

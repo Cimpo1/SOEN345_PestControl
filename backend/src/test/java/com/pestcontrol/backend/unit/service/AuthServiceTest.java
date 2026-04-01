@@ -14,6 +14,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.pestcontrol.backend.api.dto.LoginRequest;
+import com.pestcontrol.backend.api.dto.LoginResponse;
+import com.pestcontrol.backend.service.JWTService;
+import org.mockito.MockedStatic;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +42,8 @@ class AuthServiceTest {
 
     private RegisterRequest validRegisterRequest;
 
+    private User mockUser;
+
     @BeforeEach
     void setUp() {
         validRegisterRequest = new RegisterRequest();
@@ -42,6 +51,13 @@ class AuthServiceTest {
         validRegisterRequest.email = "john@example.com";
         validRegisterRequest.phoneNumber = "1234567890";
         validRegisterRequest.password = "securePassword123";
+
+        mockUser = new User();
+        mockUser.setFullName("John Doe");
+        mockUser.setEmail("john@example.com");
+        mockUser.setPhoneNumber("1234567890");
+        mockUser.setPasswordHash("encodedPassword");
+        mockUser.setUserRole(UserRole.CUSTOMER);
     }
 
     @Test
@@ -193,6 +209,110 @@ class AuthServiceTest {
             user.getEmail().equals(validRegisterRequest.email) &&
             user.getPhoneNumber().equals(validRegisterRequest.phoneNumber)
         ));
+    }
+
+    @Test
+    @DisplayName("Should throw BAD_REQUEST when both email and phone are null")
+    void testLoginFailsWithoutEmailOrPhone() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail(null);
+        request.setPhoneNumber(null);
+        request.setPassword("anyPassword");
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> authService.login(request));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals("Missing credentials", ex.getReason());
+    }
+
+    @Test
+    @DisplayName("Should throw UNAUTHORIZED when email not found")
+    void testLoginFailsWithInvalidEmail() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("invalid@example.com");
+        request.setPassword("password");
+
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> authService.login(request));
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        assertEquals("Invalid credentials", ex.getReason());
+    }
+
+    @Test
+    @DisplayName("Should throw UNAUTHORIZED when phone not found")
+    void testLoginFailsWithInvalidPhone() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail(null);
+        request.setPhoneNumber("0000000000");
+        request.setPassword("password");
+
+        when(userRepository.findByPhoneNumber(request.getPhoneNumber())).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> authService.login(request));
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        assertEquals("Invalid credentials", ex.getReason());
+    }
+
+    @Test
+    @DisplayName("Should throw UNAUTHORIZED when password does not match")
+    void testLoginFailsWithIncorrectPassword() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail(mockUser.getEmail());
+        request.setPassword("wrongPassword");
+
+        when(userRepository.findByEmail(mockUser.getEmail())).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches(request.getPassword(), mockUser.getPasswordHash())).thenReturn(false);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> authService.login(request));
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        assertEquals("Invalid credentials", ex.getReason());
+    }
+
+    @Test
+    @DisplayName("Should login successfully with email")
+    void testLoginSuccessWithEmail() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail(mockUser.getEmail());
+        request.setPassword("correctPassword");
+
+        when(userRepository.findByEmail(mockUser.getEmail())).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches(request.getPassword(), mockUser.getPasswordHash())).thenReturn(true);
+
+        try (MockedStatic<JWTService> jwtMock = mockStatic(JWTService.class)) {
+            jwtMock.when(() -> JWTService.generateToken(mockUser)).thenReturn("mockToken");
+
+            LoginResponse response = authService.login(request);
+
+            assertNotNull(response);
+            assertEquals("mockToken", response.getToken());
+            assertEquals(mockUser.getFullName(), response.getUser().getFullName());
+        }
+    }
+
+    @Test
+    @DisplayName("Should login successfully with phone")
+    void testLoginSuccessWithPhone() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail(null);
+        request.setPhoneNumber(mockUser.getPhoneNumber());
+        request.setPassword("correctPassword");
+
+        when(userRepository.findByPhoneNumber(mockUser.getPhoneNumber())).thenReturn(Optional.of(mockUser));
+        when(passwordEncoder.matches(request.getPassword(), mockUser.getPasswordHash())).thenReturn(true);
+
+        try (MockedStatic<JWTService> jwtMock = mockStatic(JWTService.class)) {
+            jwtMock.when(() -> JWTService.generateToken(mockUser)).thenReturn("mockToken");
+
+            LoginResponse response = authService.login(request);
+
+            assertNotNull(response);
+            assertEquals("mockToken", response.getToken());
+            assertEquals(mockUser.getFullName(), response.getUser().getFullName());
+        }
     }
 }
 
