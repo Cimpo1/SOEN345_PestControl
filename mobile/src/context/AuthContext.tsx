@@ -12,8 +12,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken]               = useState<string | null>(null);
-  const [currentScreen, setScreen]      = useState<Screen>("Auth");
+  const [token, setToken] = useState<string | null>(null);
+  const [currentScreen, setScreen] = useState<Screen>("Auth");
 
   const login = (newToken: string) => {
     setToken(newToken);
@@ -34,6 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  if (!ctx) {
+    throw new Error("useAuth must be used inside <AuthProvider>");
+  }
   return ctx;
 }

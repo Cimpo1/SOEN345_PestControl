@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
+  Animated,
   Image,
   TouchableOpacity,
   Text,
@@ -7,7 +8,8 @@ import {
   TextInput,
   StyleSheet,
 } from "react-native";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "../context/AuthContext";
+import { loginUser, registerUser } from "../services/authApi";
 
 type Tab = "signin" | "signup";
 
@@ -19,8 +21,11 @@ interface FormData {
   password: string;
 }
 
-export default function AuthPage() {
+export default function AuthScreen() {
   const { login } = useAuth();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const successAnim = useRef(new Animated.Value(0)).current;
   const [tab, setTab] = useState<Tab>("signin");
   const [form, setForm] = useState<FormData>({
     fullName: "",
@@ -30,84 +35,95 @@ export default function AuthPage() {
     password: "",
   });
 
+  const playRegistrationSuccess = () => {
+    setShowSuccess(true);
+    successAnim.setValue(0);
+
+    Animated.sequence([
+      Animated.timing(successAnim, {
+        toValue: 1,
+        duration: 260,
+        useNativeDriver: true,
+      }),
+      Animated.delay(900),
+      Animated.timing(successAnim, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowSuccess(false);
+    });
+  };
+
   const handleSubmit = async () => {
-    const url = "http://10.0.2.2:8080";
     const { fullName, contact, email, phoneNumber, password } = form;
+    setErrorMessage(null);
 
     if (tab === "signup") {
       const phoneRegex: RegExp = /^\d{3}-\d{3}-\d{4}$/;
-      const emailRegex: RegExp = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      const emailRegex: RegExp =
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(email) && !phoneRegex.test(phoneNumber)) {
-        console.log("Phone number and Email are invalid");
+        setErrorMessage("Please enter a valid email and phone number.");
         return;
       }
-      const body = {
+
+      const result = await registerUser({
         fullName,
         email,
         phoneNumber,
         password,
-      };
+      });
 
-      try {
-        const response = await fetch(url + "/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-
-        if (response.ok) {
-          console.log("Registration successful");
-        } else {
-          const errorText = await response.text();
-          console.error("Registration failed:", errorText);
-        }
-      } catch (error) {
-        console.error("Network error:", error);
+      if (result.ok) {
+        playRegistrationSuccess();
+        setTab("signin");
+        setForm((prev) => ({
+          ...prev,
+          fullName: "",
+          email: "",
+          phoneNumber: "",
+          contact: email,
+          password: "",
+        }));
+      } else {
+        setErrorMessage(
+          result.error || "Registration failed. Please try again.",
+        );
       }
-    } else {
-      const { contact, password } = form;
-      const isEmail = contact.includes("@");
 
-
-      const body = {
-        email: isEmail ? contact : null,
-        phoneNumber: isEmail ? null : contact,
-        password,
-      };
-
-      try {
-        const response = await fetch(url + "/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-
-        if (response.ok) {
-          const { token, user } = await response.json();
-          console.log("Login successful. Token:", token, "User:", user);
-          login(token);
-
-        } else if (response.status === 400) {
-          console.error("Login failed: missing credentials");
-        } else if (response.status === 401) {
-          console.error("Login failed: invalid credentials");
-        } else {
-          console.error("Login failed: unexpected error", response.status);
-        }
-      } catch (error) {
-        console.error("Network error:", error);
-      }
+      return;
     }
+
+    const isEmail = contact.includes("@");
+
+    const result = await loginUser({
+      email: isEmail ? contact : null,
+      phoneNumber: isEmail ? null : contact,
+      password,
+    });
+
+    if (result.ok && result.data?.token) {
+      login(result.data.token);
+      return;
+    }
+
+    setErrorMessage(result.error || "Login failed. Please try again.");
   };
+
+  const successScale = successAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.92, 1],
+  });
 
   return (
     <View style={styles.page}>
       <View style={styles.card}>
         <Image
-          source={require("./assets/favicon.png")}
+          source={require("../../assets/favicon.png")}
           style={{ width: 64, height: 64, alignSelf: "center" }}
         />
-        {/*Tab Switch */}
         <View style={styles.tabs}>
           {(["signin", "signup"] as Tab[]).map((t) => (
             <TouchableOpacity
@@ -121,7 +137,7 @@ export default function AuthPage() {
             </TouchableOpacity>
           ))}
         </View>
-        {/*Entries  */}
+
         {tab === "signup" && (
           <>
             <TextInput
@@ -147,6 +163,7 @@ export default function AuthPage() {
             />
           </>
         )}
+
         {tab === "signin" && (
           <TextInput
             placeholder="Email or phone number"
@@ -156,6 +173,7 @@ export default function AuthPage() {
             style={styles.input}
           />
         )}
+
         <TextInput
           placeholder="Password"
           placeholderTextColor="#666"
@@ -164,12 +182,27 @@ export default function AuthPage() {
           onChangeText={(val) => setForm({ ...form, password: val })}
           style={styles.input}
         />
+        {!!errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
         <TouchableOpacity onPress={handleSubmit} style={styles.btn}>
           <Text style={styles.btnText}>
             {tab === "signin" ? "Sign In" : "Create Account"}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {showSuccess && (
+        <View pointerEvents="none" style={styles.successOverlay}>
+          <Animated.View
+            style={[
+              styles.successCard,
+              { opacity: successAnim, transform: [{ scale: successScale }] },
+            ]}
+          >
+            <Text style={styles.successTitle}>Registration successful</Text>
+            <Text style={styles.successSubtitle}>You can now sign in.</Text>
+          </Animated.View>
+        </View>
+      )}
     </View>
   );
 }
@@ -210,6 +243,10 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 14,
   },
+  errorText: {
+    color: "#ff9f9f",
+    fontSize: 13,
+  },
   btn: {
     marginTop: 4,
     backgroundColor: "#c8a97e",
@@ -223,6 +260,30 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.5,
   },
+  successOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(15, 15, 15, 0.35)",
+  },
+  successCard: {
+    backgroundColor: "#183022",
+    borderWidth: 1,
+    borderColor: "#2e5a3f",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    minWidth: 240,
+    alignItems: "center",
+  },
+  successTitle: {
+    color: "#b9f5cc",
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  successSubtitle: {
+    color: "#ddf7e4",
+    fontSize: 13,
+  },
 });
-
-

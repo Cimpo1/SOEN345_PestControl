@@ -24,15 +24,15 @@ public class AuthService {
 
     public void register(RegisterRequest request) {
         if (request.email == null && request.phoneNumber == null) {
-            throw new RuntimeException("Email or phone required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email or phone required");
         }
 
-        //Duplicates
+        // Duplicates
         if (request.email != null && userRepository.existsByEmail(request.email)) {
-            throw new RuntimeException("Email already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
         if (request.phoneNumber != null && userRepository.existsByPhoneNumber(request.phoneNumber)) {
-            throw new RuntimeException("Phone already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Phone already exists");
         }
 
         String passwordHash = passwordEncoder.encode(request.password);
