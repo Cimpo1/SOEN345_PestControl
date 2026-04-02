@@ -33,27 +33,31 @@ class EventControllerTest {
 
     @Test
     void getEvents_shouldParseCategoriesAndDelegateToService() {
+        LocalDate startDate = LocalDate.parse("2026-07-01");
+        LocalDate endDate = LocalDate.parse("2026-07-31");
+        List<Category> categories = List.of(Category.CONCERT, Category.SPORTS);
+
         when(eventService.getEvents(
-                eq("jazz"),
-                eq(LocalDate.parse("2026-07-01")),
-                eq(LocalDate.parse("2026-07-31")),
-                eq("Montreal"),
-                eq(List.of(Category.CONCERT, Category.SPORTS)))).thenReturn(List.of());
+                "jazz",
+                startDate,
+                endDate,
+                "Montreal",
+                categories)).thenReturn(List.of());
 
         ResponseEntity<List<EventResponse>> response = eventController.getEvents(
                 "jazz",
-                LocalDate.parse("2026-07-01"),
-                LocalDate.parse("2026-07-31"),
+                startDate,
+                endDate,
                 "Montreal",
                 "concert,sports");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(eventService).getEvents(
                 "jazz",
-                LocalDate.parse("2026-07-01"),
-                LocalDate.parse("2026-07-31"),
+                startDate,
+                endDate,
                 "Montreal",
-                List.of(Category.CONCERT, Category.SPORTS));
+                categories);
     }
 
     @Test

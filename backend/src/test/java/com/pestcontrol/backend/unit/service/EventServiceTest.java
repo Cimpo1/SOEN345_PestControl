@@ -106,14 +106,18 @@ class EventServiceTest {
 
     @Test
     void getEvents_whenEndDateBeforeStartDate_throwsBadRequest() {
+        LocalDate startDate = LocalDate.parse("2026-08-01");
+        LocalDate endDate = LocalDate.parse("2026-07-01");
+        List<Category> categories = List.of();
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
                 () -> eventService.getEvents(
                         null,
-                        LocalDate.parse("2026-08-01"),
-                        LocalDate.parse("2026-07-01"),
+                        startDate,
+                        endDate,
                         null,
-                        List.of()));
+                        categories));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }

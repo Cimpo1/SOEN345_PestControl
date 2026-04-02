@@ -63,14 +63,8 @@ public class EventService {
     private boolean matchesDateRange(Event event, LocalDate startDate, LocalDate endDate) {
         LocalDate eventDate = event.getStartDateTime().toLocalDate();
 
-        if (startDate != null && eventDate.isBefore(startDate)) {
-            return false;
-        }
-        if (endDate != null && eventDate.isAfter(endDate)) {
-            return false;
-        }
-
-        return true;
+        return (startDate == null || !eventDate.isBefore(startDate))
+                && (endDate == null || !eventDate.isAfter(endDate));
     }
 
     private boolean matchesLocation(Event event, String locationQuery) {
