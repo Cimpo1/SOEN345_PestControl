@@ -30,8 +30,16 @@ export default function AppTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Events" component={EventsStack} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ tabBarButtonTestID: "tab-home" }}
+      />
+      <Tab.Screen
+        name="Events"
+        component={EventsStack}
+        options={{ tabBarButtonTestID: "tab-events" }}
+      />
     </Tab.Navigator>
   );
 }

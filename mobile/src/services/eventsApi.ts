@@ -33,6 +33,19 @@ export interface EventFilters {
   categories?: string[];
 }
 
+import {
+  filterFixtureEvents,
+  getEventsFixtureData,
+  getEventsFixtureMode,
+  isEventsMockEnabled,
+} from "./eventsFixtures";
+
+function delay(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 function getBaseUrl() {
   const backendIp = process.env.EXPO_PUBLIC_BACKEND_IP;
   return backendIp ? `http://${backendIp}:8080` : "http://localhost:8080";
@@ -64,6 +77,18 @@ function buildEventsQuery(filters: EventFilters) {
 export async function fetchEvents(
   filters: EventFilters,
 ): Promise<ApiResponse<EventItem[]>> {
+  if (isEventsMockEnabled()) {
+    await delay(120);
+    const allEvents = getEventsFixtureData(getEventsFixtureMode());
+    const filteredEvents = filterFixtureEvents(allEvents, filters);
+
+    return {
+      ok: true,
+      status: 200,
+      data: filteredEvents,
+    };
+  }
+
   try {
     const response = await fetch(`${getBaseUrl()}/events${buildEventsQuery(filters)}`);
 
@@ -90,6 +115,26 @@ export async function fetchEvents(
 export async function fetchEventById(
   eventId: number,
 ): Promise<ApiResponse<EventItem>> {
+  if (isEventsMockEnabled()) {
+    await delay(80);
+    const allEvents = getEventsFixtureData(getEventsFixtureMode());
+    const event = allEvents.find((item) => item.eventId === eventId);
+
+    if (event) {
+      return {
+        ok: true,
+        status: 200,
+        data: event,
+      };
+    }
+
+    return {
+      ok: false,
+      status: 404,
+      error: "Event was not found.",
+    };
+  }
+
   try {
     const response = await fetch(`${getBaseUrl()}/events/${eventId}`);
 

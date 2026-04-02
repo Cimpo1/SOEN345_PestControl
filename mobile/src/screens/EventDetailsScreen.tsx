@@ -53,31 +53,44 @@ export default function EventDetailsScreen({ route }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.centerArea}>
-        <ActivityIndicator size="large" color="#d88b4b" />
+      <View testID="event-details-loading-state" style={styles.centerArea}>
+        <ActivityIndicator
+          testID="event-details-loading-indicator"
+          size="large"
+          color="#d88b4b"
+        />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centerArea}>
-        <Text style={styles.errorText}>{error}</Text>
+      <View testID="event-details-error-state" style={styles.centerArea}>
+        <Text testID="event-details-error-message" style={styles.errorText}>
+          {error}
+        </Text>
       </View>
     );
   }
 
   if (!event) {
     return (
-      <View style={styles.centerArea}>
-        <Text style={styles.errorText}>Event was not found.</Text>
+      <View testID="event-details-not-found-state" style={styles.centerArea}>
+        <Text testID="event-details-not-found-message" style={styles.errorText}>
+          Event was not found.
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{event.title}</Text>
+    <ScrollView
+      testID="event-details-screen"
+      contentContainerStyle={styles.container}
+    >
+      <Text testID="event-details-title" style={styles.title}>
+        {event.title}
+      </Text>
 
       <View style={styles.section}>
         <Text style={styles.label}>Date & Time</Text>

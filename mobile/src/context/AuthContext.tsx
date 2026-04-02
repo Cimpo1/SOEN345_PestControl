@@ -11,9 +11,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const isE2ePreAuthEnabled = process.env.EXPO_PUBLIC_E2E_PREAUTH === "1";
+
+function getInitialToken() {
+  return isE2ePreAuthEnabled ? "e2e-token" : null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
-  const [currentScreen, setScreen] = useState<Screen>("Auth");
+  const [token, setToken] = useState<string | null>(getInitialToken);
+  const [currentScreen, setScreen] = useState<Screen>(
+    isE2ePreAuthEnabled ? "Home" : "Auth",
+  );
 
   const login = (newToken: string) => {
     setToken(newToken);

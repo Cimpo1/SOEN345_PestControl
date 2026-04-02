@@ -172,6 +172,7 @@ export default function EventsListScreen({ navigation }: Props) {
 
   const renderItem = ({ item }: { item: EventItem }) => (
     <Pressable
+      testID={`event-card-${item.eventId}`}
       style={styles.eventCard}
       onPress={() =>
         navigation.navigate("EventDetails", { eventId: item.eventId })
@@ -190,9 +191,14 @@ export default function EventsListScreen({ navigation }: Props) {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView
+      testID="events-list-screen"
+      style={styles.safeArea}
+      edges={["top"]}
+    >
       <View style={styles.container}>
         <FlatList
+          testID="events-list"
           data={events}
           keyExtractor={(item) => item.eventId.toString()}
           renderItem={renderItem}
@@ -204,6 +210,7 @@ export default function EventsListScreen({ navigation }: Props) {
               <Text style={styles.heading}>Events</Text>
 
               <TextInput
+                testID="events-search-input"
                 style={styles.searchInput}
                 placeholder="Search by title"
                 placeholderTextColor="#6f7a86"
@@ -213,6 +220,7 @@ export default function EventsListScreen({ navigation }: Props) {
 
               <View style={styles.filtersCard}>
                 <Pressable
+                  testID="events-filters-toggle"
                   style={styles.filtersHeader}
                   onPress={() => setFiltersOpen((prev) => !prev)}
                 >
@@ -225,6 +233,7 @@ export default function EventsListScreen({ navigation }: Props) {
                 {filtersOpen && (
                   <>
                     <TextInput
+                      testID="events-location-input"
                       style={styles.filterInput}
                       placeholder="Location (name/city/province)"
                       placeholderTextColor="#6f7a86"
@@ -234,6 +243,7 @@ export default function EventsListScreen({ navigation }: Props) {
 
                     <View style={styles.rowInputs}>
                       <TextInput
+                        testID="events-start-date-input"
                         style={[styles.filterInput, styles.halfInput]}
                         placeholder="Start date YYYY-MM-DD"
                         placeholderTextColor="#6f7a86"
@@ -241,6 +251,7 @@ export default function EventsListScreen({ navigation }: Props) {
                         onChangeText={setStartDateInput}
                       />
                       <TextInput
+                        testID="events-end-date-input"
                         style={[styles.filterInput, styles.halfInput]}
                         placeholder="End date YYYY-MM-DD"
                         placeholderTextColor="#6f7a86"
@@ -255,6 +266,7 @@ export default function EventsListScreen({ navigation }: Props) {
                         return (
                           <Pressable
                             key={category}
+                            testID={`events-category-${category.toLowerCase()}`}
                             style={[
                               styles.categoryChip,
                               selected && styles.categoryChipSelected,
@@ -275,11 +287,14 @@ export default function EventsListScreen({ navigation }: Props) {
                     </View>
 
                     {!!filterError && (
-                      <Text style={styles.errorText}>{filterError}</Text>
+                      <Text testID="events-filter-error" style={styles.errorText}>
+                        {filterError}
+                      </Text>
                     )}
 
                     <View style={styles.actionsRow}>
                       <Pressable
+                        testID="events-apply-filters"
                         style={styles.applyButton}
                         onPress={onApplyFilters}
                       >
@@ -288,6 +303,7 @@ export default function EventsListScreen({ navigation }: Props) {
                         </Text>
                       </Pressable>
                       <Pressable
+                        testID="events-reset-filters"
                         style={styles.resetButton}
                         onPress={onResetFilters}
                       >
@@ -302,11 +318,17 @@ export default function EventsListScreen({ navigation }: Props) {
           ListEmptyComponent={
             <View style={styles.centerArea}>
               {loading ? (
-                <ActivityIndicator size="large" color="#d88b4b" />
+                <ActivityIndicator
+                  testID="events-loading-indicator"
+                  size="large"
+                  color="#d88b4b"
+                />
               ) : error ? (
-                <Text style={styles.errorText}>{error}</Text>
+                <Text testID="events-list-error" style={styles.errorText}>
+                  {error}
+                </Text>
               ) : (
-                <Text style={styles.emptyText}>
+                <Text testID="events-empty-message" style={styles.emptyText}>
                   No events match your search/filters.
                 </Text>
               )}

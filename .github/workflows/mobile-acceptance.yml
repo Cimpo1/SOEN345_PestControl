@@ -1,0 +1,66 @@
+name: Mobile Acceptance (Detox)
+
+on:
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  detox-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Build Detox Android app
+        working-directory: mobile
+        env:
+          EXPO_PUBLIC_E2E_PREAUTH: "1"
+          EXPO_PUBLIC_E2E_MOCK_EVENTS: "1"
+          EXPO_PUBLIC_E2E_EVENTS_MODE: many
+        run: npm run detox:build:android
+
+      - name: Start Metro bundler
+        working-directory: mobile
+        run: nohup npx react-native start --port 8081 > ../metro.log 2>&1 &
+
+      - name: Run AT-4 Detox specs
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            cd mobile
+            npm run detox:test:android:ci
+
+      - name: Upload Detox artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-artifacts
+          path: |
+            mobile/artifacts
+            metro.log
