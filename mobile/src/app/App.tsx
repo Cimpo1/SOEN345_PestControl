@@ -1,16 +1,20 @@
+import { NavigationContainer } from "@react-navigation/native";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import AuthScreen from "../screens/AuthScreen";
-import HomeScreen from "../screens/HomeScreen";
+import AppTabs from "../navigation/AppTabs";
 
 function Navigator() {
-  const { currentScreen } = useAuth();
+  const { token } = useAuth();
 
-  switch (currentScreen) {
-    case "Home":
-      return <HomeScreen />;
-    default:
-      return <AuthScreen />;
+  if (!token) {
+    return <AuthScreen />;
   }
+
+  return (
+    <NavigationContainer>
+      <AppTabs />
+    </NavigationContainer>
+  );
 }
 
 export default function App() {

@@ -39,7 +39,7 @@ public class AuthService {
 
         User user = new User();
         user.setFullName(request.fullName);
-        user.setEmail(request.email);
+        user.setEmail(request.email.toLowerCase());
         user.setPhoneNumber(request.phoneNumber);
         user.setPasswordHash(passwordHash);
         user.setUserRole(UserRole.CUSTOMER);
@@ -53,7 +53,7 @@ public class AuthService {
 
         User user;
         if (request.getEmail() != null) {
-            user = userRepository.findByEmail(request.getEmail())
+            user = userRepository.findByEmail(request.getEmail().toLowerCase())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
         } else {
             user = userRepository.findByPhoneNumber(request.getPhoneNumber())
