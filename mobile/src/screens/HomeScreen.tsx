@@ -1,6 +1,7 @@
-import { Text, View, StyleSheet, Button } from "react-native";
+import { Button, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../context/AuthContext";
+import { styles } from "./styles/HomeScreen.styles";
 
 export default function HomeScreen() {
   const { logout } = useAuth();
@@ -18,24 +19,3 @@ export default function HomeScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f4f0",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    gap: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#2f2b27",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#5b5147",
-    textAlign: "center",
-  },
-});

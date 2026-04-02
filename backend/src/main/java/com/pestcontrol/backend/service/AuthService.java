@@ -27,8 +27,10 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email or phone required");
         }
 
+        String normalizedEmail = request.email == null ? null : request.email.toLowerCase();
+
         // Duplicates
-        if (request.email != null && userRepository.existsByEmail(request.email)) {
+        if (normalizedEmail != null && userRepository.existsByEmail(normalizedEmail)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
         if (request.phoneNumber != null && userRepository.existsByPhoneNumber(request.phoneNumber)) {
@@ -39,7 +41,7 @@ public class AuthService {
 
         User user = new User();
         user.setFullName(request.fullName);
-        user.setEmail(request.email.toLowerCase());
+        user.setEmail(normalizedEmail);
         user.setPhoneNumber(request.phoneNumber);
         user.setPasswordHash(passwordHash);
         user.setUserRole(UserRole.CUSTOMER);

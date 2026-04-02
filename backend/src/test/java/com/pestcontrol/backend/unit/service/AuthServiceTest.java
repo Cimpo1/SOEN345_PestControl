@@ -127,8 +127,10 @@ class AuthServiceTest {
         request.password = "password123";
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> authService.register(request));
-        assertEquals("Email or phone required", exception.getMessage());
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.register(request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Email or phone required", exception.getReason());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -139,8 +141,10 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(validRegisterRequest.email)).thenReturn(true);
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> authService.register(validRegisterRequest));
-        assertEquals("Email already exists", exception.getMessage());
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.register(validRegisterRequest));
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        assertEquals("Email already exists", exception.getReason());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -152,8 +156,10 @@ class AuthServiceTest {
         when(userRepository.existsByPhoneNumber(validRegisterRequest.phoneNumber)).thenReturn(true);
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> authService.register(validRegisterRequest));
-        assertEquals("Phone already exists", exception.getMessage());
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.register(validRegisterRequest));
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+        assertEquals("Phone already exists", exception.getReason());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -204,11 +210,9 @@ class AuthServiceTest {
         authService.register(validRegisterRequest);
 
         // Assert
-        verify(userRepository).save(argThat(user ->
-            user.getFullName().equals(validRegisterRequest.fullName) &&
-            user.getEmail().equals(validRegisterRequest.email) &&
-            user.getPhoneNumber().equals(validRegisterRequest.phoneNumber)
-        ));
+        verify(userRepository).save(argThat(user -> user.getFullName().equals(validRegisterRequest.fullName) &&
+                user.getEmail().equals(validRegisterRequest.email) &&
+                user.getPhoneNumber().equals(validRegisterRequest.phoneNumber)));
     }
 
     @Test
@@ -315,4 +319,3 @@ class AuthServiceTest {
         }
     }
 }
-

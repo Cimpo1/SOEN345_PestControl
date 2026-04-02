@@ -2,14 +2,14 @@ import { useRef, useState } from "react";
 import {
   Animated,
   Image,
-  TouchableOpacity,
-  Text,
-  View,
   TextInput,
-  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { loginUser, registerUser } from "../services/authApi";
+import { styles } from "./styles/AuthScreen.styles";
 
 type Tab = "signin" | "signup";
 
@@ -206,84 +206,3 @@ export default function AuthScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0f0f0f",
-  },
-  card: {
-    backgroundColor: "#1a1a1a",
-    borderWidth: 1,
-    borderColor: "#2e2e2e",
-    borderRadius: 12,
-    padding: 36,
-    width: 340,
-    gap: 14,
-  },
-  tabs: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#2e2e2e",
-    marginBottom: 6,
-  },
-  tab: { flex: 1, paddingVertical: 10, alignItems: "center" },
-  activeTab: { borderBottomWidth: 2, borderBottomColor: "#c8a97e" },
-  tabText: { color: "#666", fontSize: 14, letterSpacing: 0.4 },
-  activeTabText: { color: "#f0e6d3" },
-  input: {
-    backgroundColor: "#111",
-    borderWidth: 1,
-    borderColor: "#2e2e2e",
-    borderRadius: 8,
-    color: "#f0e6d3",
-    fontSize: 14,
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-  },
-  errorText: {
-    color: "#ff9f9f",
-    fontSize: 13,
-  },
-  btn: {
-    marginTop: 4,
-    backgroundColor: "#c8a97e",
-    borderRadius: 8,
-    paddingVertical: 13,
-    alignItems: "center",
-  },
-  btnText: {
-    color: "#0f0f0f",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  successOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(15, 15, 15, 0.35)",
-  },
-  successCard: {
-    backgroundColor: "#183022",
-    borderWidth: 1,
-    borderColor: "#2e5a3f",
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    minWidth: 240,
-    alignItems: "center",
-  },
-  successTitle: {
-    color: "#b9f5cc",
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 2,
-  },
-  successSubtitle: {
-    color: "#ddf7e4",
-    fontSize: 13,
-  },
-});
