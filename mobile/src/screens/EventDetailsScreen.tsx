@@ -12,6 +12,10 @@ function formatDateTime(dateText: string) {
   return date.toLocaleString();
 }
 
+function formatCategoryLabel(category: string) {
+  return category.replace(/_/g, " ");
+}
+
 export default function EventDetailsScreen({ route }: Props) {
   const { eventId } = route.params;
   const [event, setEvent] = useState<EventItem | null>(null);
@@ -83,7 +87,7 @@ export default function EventDetailsScreen({ route }: Props) {
 
       <View style={styles.section}>
         <Text style={styles.label}>Category</Text>
-        <Text style={styles.value}>{event.category}</Text>
+        <Text style={styles.value}>{formatCategoryLabel(event.category)}</Text>
       </View>
 
       <View style={styles.section}>

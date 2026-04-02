@@ -34,6 +34,10 @@ function isIsoDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
 }
 
+function formatCategoryLabel(category: string) {
+  return category.replace(/_/g, " ");
+}
+
 export default function EventsListScreen({ navigation }: Props) {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -179,7 +183,8 @@ export default function EventsListScreen({ navigation }: Props) {
         {item.location.name} - {item.location.city}
       </Text>
       <Text style={styles.eventMeta}>
-        {item.category} - ${Number(item.basePrice).toFixed(2)}
+        {formatCategoryLabel(item.category)} - $
+        {Number(item.basePrice).toFixed(2)}
       </Text>
     </Pressable>
   );
@@ -262,7 +267,7 @@ export default function EventsListScreen({ navigation }: Props) {
                                 selected && styles.categoryChipTextSelected,
                               ]}
                             >
-                              {category}
+                              {formatCategoryLabel(category)}
                             </Text>
                           </Pressable>
                         );
