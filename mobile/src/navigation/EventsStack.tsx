@@ -20,7 +20,10 @@ export default function EventsStack() {
       <Stack.Screen
         name="EventDetails"
         component={EventDetailsScreen}
-        options={{ title: "Event Details" }}
+        options={{
+          title: "Event Details",
+          statusBarTranslucent: false,
+        }}
       />
     </Stack.Navigator>
   );

@@ -1,4 +1,5 @@
 import { NavigationContainer } from "@react-navigation/native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import AuthScreen from "../screens/AuthScreen";
 import AppTabs from "../navigation/AppTabs";
@@ -19,8 +20,10 @@ function Navigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Navigator />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <Navigator />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
