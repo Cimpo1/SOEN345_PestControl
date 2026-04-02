@@ -79,12 +79,12 @@ const expoEnv = {
 const shortWorkspace = setupShortWorkspace(projectRoot);
 
 try {
-  ensureLocalProperties(shortWorkspace.workspaceRoot);
-
   run("npx expo prebuild --platform android", {
     env: expoEnv,
     cwd: shortWorkspace.workspaceRoot,
   });
+
+  ensureLocalProperties(shortWorkspace.workspaceRoot);
 
   if (os.platform() === "win32") {
     run("gradlew.bat assembleDebug assembleAndroidTest -DtestBuildType=debug", {
