@@ -4,13 +4,13 @@ import {
   FlatList,
   Pressable,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { fetchEvents, type EventItem } from "../services/eventsApi";
 import type { EventsStackParamList } from "../navigation/EventsStack";
+import EventFilters from "../components/EventFilters";
 import { styles } from "./styles/EventsListScreen.styles";
 
 type Props = NativeStackScreenProps<EventsStackParamList, "EventsList">;
@@ -203,100 +203,25 @@ export default function EventsListScreen({ navigation }: Props) {
             <View style={styles.headerContent}>
               <Text style={styles.heading}>Events</Text>
 
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search by title"
-                placeholderTextColor="#6f7a86"
-                value={searchInput}
-                onChangeText={setSearchInput}
+              <EventFilters
+                searchValue={searchInput}
+                onSearchChange={setSearchInput}
+                filtersOpen={filtersOpen}
+                onToggleOpen={() => setFiltersOpen((prev) => !prev)}
+                locationValue={locationInput}
+                onLocationChange={setLocationInput}
+                startDateValue={startDateInput}
+                onStartDateChange={setStartDateInput}
+                endDateValue={endDateInput}
+                onEndDateChange={setEndDateInput}
+                categoryOptions={CATEGORY_OPTIONS}
+                selectedCategories={selectedCategories}
+                onToggleCategory={onToggleCategory}
+                filterError={filterError}
+                onApply={onApplyFilters}
+                onReset={onResetFilters}
+                formatLabel={formatCategoryLabel}
               />
-
-              <View style={styles.filtersCard}>
-                <Pressable
-                  style={styles.filtersHeader}
-                  onPress={() => setFiltersOpen((prev) => !prev)}
-                >
-                  <Text style={styles.filtersTitle}>Filters</Text>
-                  <Text style={styles.filtersArrow}>
-                    {filtersOpen ? "^" : "v"}
-                  </Text>
-                </Pressable>
-
-                {filtersOpen && (
-                  <>
-                    <TextInput
-                      style={styles.filterInput}
-                      placeholder="Location (name/city/province)"
-                      placeholderTextColor="#6f7a86"
-                      value={locationInput}
-                      onChangeText={setLocationInput}
-                    />
-
-                    <View style={styles.rowInputs}>
-                      <TextInput
-                        style={[styles.filterInput, styles.halfInput]}
-                        placeholder="Start date YYYY-MM-DD"
-                        placeholderTextColor="#6f7a86"
-                        value={startDateInput}
-                        onChangeText={setStartDateInput}
-                      />
-                      <TextInput
-                        style={[styles.filterInput, styles.halfInput]}
-                        placeholder="End date YYYY-MM-DD"
-                        placeholderTextColor="#6f7a86"
-                        value={endDateInput}
-                        onChangeText={setEndDateInput}
-                      />
-                    </View>
-
-                    <View style={styles.categoriesWrap}>
-                      {CATEGORY_OPTIONS.map((category) => {
-                        const selected = selectedCategories.includes(category);
-                        return (
-                          <Pressable
-                            key={category}
-                            style={[
-                              styles.categoryChip,
-                              selected && styles.categoryChipSelected,
-                            ]}
-                            onPress={() => onToggleCategory(category)}
-                          >
-                            <Text
-                              style={[
-                                styles.categoryChipText,
-                                selected && styles.categoryChipTextSelected,
-                              ]}
-                            >
-                              {formatCategoryLabel(category)}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-
-                    {!!filterError && (
-                      <Text style={styles.errorText}>{filterError}</Text>
-                    )}
-
-                    <View style={styles.actionsRow}>
-                      <Pressable
-                        style={styles.applyButton}
-                        onPress={onApplyFilters}
-                      >
-                        <Text style={styles.applyButtonText}>
-                          Apply Filters
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        style={styles.resetButton}
-                        onPress={onResetFilters}
-                      >
-                        <Text style={styles.resetButtonText}>Reset</Text>
-                      </Pressable>
-                    </View>
-                  </>
-                )}
-              </View>
             </View>
           }
           ListEmptyComponent={

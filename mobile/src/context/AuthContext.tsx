@@ -1,11 +1,10 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-
-type Screen = "Auth" | "Home";
+import type { AuthUser } from "../services/authApi";
 
 interface AuthContextType {
   token: string | null;
-  currentScreen: Screen;
-  login: (token: string) => void;
+  user: AuthUser | null;
+  login: (token: string, user: AuthUser) => void;
   logout: () => void;
 }
 
@@ -13,20 +12,20 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
-  const [currentScreen, setScreen] = useState<Screen>("Auth");
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-  const login = (newToken: string) => {
+  const login = (newToken: string, authUser: AuthUser) => {
     setToken(newToken);
-    setScreen("Home");
+    setUser(authUser);
   };
 
   const logout = () => {
     setToken(null);
-    setScreen("Auth");
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ token, currentScreen, login, logout }}>
+    <AuthContext.Provider value={{ token, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

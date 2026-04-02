@@ -1,11 +1,16 @@
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#f5f4f0",
+  },
   container: {
     padding: 16,
     backgroundColor: "#f5f4f0",
     flexGrow: 1,
     gap: 12,
+    width: "100%",
   },
   title: {
     fontSize: 28,
@@ -19,6 +24,7 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     gap: 4,
+    width: "100%",
   },
   label: {
     color: "#8a4b1c",
@@ -42,5 +48,29 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
+  },
+  reserveButton: {
+    backgroundColor: "#d88b4b",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  reserveButtonDisabled: {
+    backgroundColor: "#cbb7a3",
+  },
+  reserveButtonText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+  registeredText: {
+    color: "#2f2b27",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  infoText: {
+    color: "#6f7a86",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

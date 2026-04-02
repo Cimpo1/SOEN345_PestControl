@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { loginUser, registerUser } from "../services/authApi";
 import { styles } from "./styles/AuthScreen.styles";
@@ -104,8 +105,8 @@ export default function AuthScreen() {
       password,
     });
 
-    if (result.ok && result.data?.token) {
-      login(result.data.token);
+    if (result.ok && result.data?.token && result.data.user) {
+      login(result.data.token, result.data.user);
       return;
     }
 
@@ -118,7 +119,7 @@ export default function AuthScreen() {
   });
 
   return (
-    <View style={styles.page}>
+    <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <View style={styles.card}>
         <Image
           source={require("../../assets/favicon.png")}
@@ -203,6 +204,6 @@ export default function AuthScreen() {
           </Animated.View>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
