@@ -67,6 +67,18 @@ class ReservationControllerTest {
     }
 
     @Test
+    void reserve_withInvalidToken_shouldThrowUnauthorized() {
+        CreateReservationRequest request = new CreateReservationRequest();
+        request.setEventId(5L);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> reservationController.reserve("Bearer invalid-token", request));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+    }
+
+    @Test
     void getCurrentReservations_shouldDelegateToService() {
         String token = createToken(15L);
         String authorization = "Bearer " + token;
@@ -78,6 +90,51 @@ class ReservationControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
         verify(reservationService).getCurrentReservations(15L);
+    }
+
+    @Test
+    void getCurrentReservations_withInvalidToken_shouldThrowUnauthorized() {
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> reservationController.getCurrentReservations("Bearer invalid-token"));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+    }
+
+    @Test
+    void getInteractedEvents_shouldDelegateToService() {
+        String token = createToken(15L);
+        String authorization = "Bearer " + token;
+        when(reservationService.getInteractedEvents(15L)).thenReturn(List.of(createResponse(3L, "CANCELLED")));
+
+        ResponseEntity<List<ReservationResponse>> response = reservationController.getInteractedEvents(authorization);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().size());
+        verify(reservationService).getInteractedEvents(15L);
+    }
+
+    @Test
+    void cancelReservation_shouldDelegateToService() {
+        String token = createToken(15L);
+        String authorization = "Bearer " + token;
+        ReservationResponse mockResponse = createResponse(44L, "CANCELLED");
+        when(reservationService.cancel(15L, 44L)).thenReturn(mockResponse);
+
+        ResponseEntity<ReservationResponse> response = reservationController.cancelReservation(authorization, 44L);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("CANCELLED", response.getBody().getInteractionStatus());
+        verify(reservationService).cancel(15L, 44L);
+    }
+
+    @Test
+    void cancelReservation_withMissingBearer_shouldThrowUnauthorized() {
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> reservationController.cancelReservation("invalid", 1L));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }
 
     private String createToken(Long userId) {
