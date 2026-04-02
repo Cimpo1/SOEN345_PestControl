@@ -24,22 +24,24 @@ public class AuthService {
 
     public void register(RegisterRequest request) {
         if (request.email == null && request.phoneNumber == null) {
-            throw new RuntimeException("Email or phone required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email or phone required");
         }
 
-        //Duplicates
-        if (request.email != null && userRepository.existsByEmail(request.email)) {
-            throw new RuntimeException("Email already exists");
+        String normalizedEmail = request.email == null ? null : request.email.toLowerCase();
+
+        // Duplicates
+        if (normalizedEmail != null && userRepository.existsByEmail(normalizedEmail)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
         if (request.phoneNumber != null && userRepository.existsByPhoneNumber(request.phoneNumber)) {
-            throw new RuntimeException("Phone already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Phone already exists");
         }
 
         String passwordHash = passwordEncoder.encode(request.password);
 
         User user = new User();
         user.setFullName(request.fullName);
-        user.setEmail(request.email);
+        user.setEmail(normalizedEmail);
         user.setPhoneNumber(request.phoneNumber);
         user.setPasswordHash(passwordHash);
         user.setUserRole(UserRole.CUSTOMER);
@@ -53,7 +55,7 @@ public class AuthService {
 
         User user;
         if (request.getEmail() != null) {
-            user = userRepository.findByEmail(request.getEmail())
+            user = userRepository.findByEmail(request.getEmail().toLowerCase())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
         } else {
             user = userRepository.findByPhoneNumber(request.getPhoneNumber())
