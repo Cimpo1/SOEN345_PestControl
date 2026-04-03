@@ -1,11 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import HomeScreen from "../screens/HomeScreen";
-import EventsStack from "./EventsStack";
+import type { NavigatorScreenParams } from "@react-navigation/native";
+import HomeStack, { type HomeStackParamList } from "./HomeStack";
+import EventsStack, { type EventsStackParamList } from "./EventsStack";
+import MyEventsStack, { type MyEventsStackParamList } from "./MyEventsStack";
 
 export type AppTabsParamList = {
-  Home: undefined;
-  Events: undefined;
+  Home: NavigatorScreenParams<HomeStackParamList>;
+  Events: NavigatorScreenParams<EventsStackParamList>;
+  MyEvents: NavigatorScreenParams<MyEventsStackParamList>;
 };
 
 const Tab = createBottomTabNavigator<AppTabsParamList>();
@@ -25,13 +28,26 @@ export default function AppTabs() {
         },
         tabBarIcon: ({ color, size }) => {
           const iconName =
-            route.name === "Events" ? "calendar-outline" : "home-outline";
+            route.name === "Events"
+              ? "calendar-outline"
+              : route.name === "MyEvents"
+                ? "bookmark-outline"
+                : "home-outline";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeStack}
+        options={{ title: "Home" }}
+      />
       <Tab.Screen name="Events" component={EventsStack} />
+      <Tab.Screen
+        name="MyEvents"
+        component={MyEventsStack}
+        options={{ title: "My Events" }}
+      />
     </Tab.Navigator>
   );
 }

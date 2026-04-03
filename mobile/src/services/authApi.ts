@@ -11,6 +11,14 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface AuthUser {
+  userId: number;
+  fullName: string;
+  email: string | null;
+  phoneNumber: string | null;
+  userRole: string;
+}
+
 interface AuthApiResponse<T = unknown> {
   ok: boolean;
   status: number;
@@ -65,7 +73,7 @@ export async function registerUser(
 
 export async function loginUser(
   payload: LoginPayload,
-): Promise<AuthApiResponse<{ token: string; user: unknown }>> {
+): Promise<AuthApiResponse<{ token: string; user: AuthUser }>> {
   try {
     const response = await fetch(getBaseUrl() + "/auth/login", {
       method: "POST",

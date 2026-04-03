@@ -13,9 +13,15 @@ import java.util.List;
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
     List<Reservation> findByUser(User user);
 
+    List<Reservation> findByUserOrderByCreationDateDesc(User user);
+
     List<Reservation> findByEvent(Event event);
 
     List<Reservation> findByUserAndStatus(User user, ReservationStatus status);
+
+    List<Reservation> findByUserAndStatusOrderByCreationDateDesc(User user, ReservationStatus status);
+
+    List<Reservation> findByUserAndEventAndStatusIn(User user, Event event, List<ReservationStatus> statuses);
 
     long countByEvent(Event event);
 }

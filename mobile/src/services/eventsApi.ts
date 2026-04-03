@@ -25,6 +25,14 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+export interface ReservationItem {
+  reservationId: number;
+  reservationStatus: string;
+  interactionStatus: "REGISTERED" | "PASSED" | "CANCELLED";
+  creationDate: string;
+  event: EventItem;
+}
+
 export interface EventFilters {
   title?: string;
   startDate?: string;
@@ -103,6 +111,130 @@ export async function fetchEventById(
       ok: false,
       status: response.status,
       error: rawError || "Failed to load event details.",
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      error: "Network error. Check server connection and try again.",
+    };
+  }
+}
+
+function authHeaders(token: string) {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+export async function reserveEvent(
+  token: string,
+  eventId: number,
+): Promise<ApiResponse<ReservationItem>> {
+  try {
+    const response = await fetch(`${getBaseUrl()}/reservations`, {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ eventId }),
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as ReservationItem;
+      return { ok: true, status: response.status, data };
+    }
+
+    const rawError = await response.text();
+    return {
+      ok: false,
+      status: response.status,
+      error: rawError || "Failed to reserve event.",
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      error: "Network error. Check server connection and try again.",
+    };
+  }
+}
+
+export async function fetchCurrentReservations(
+  token: string,
+): Promise<ApiResponse<ReservationItem[]>> {
+  try {
+    const response = await fetch(`${getBaseUrl()}/reservations/current`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as ReservationItem[];
+      return { ok: true, status: response.status, data };
+    }
+
+    const rawError = await response.text();
+    return {
+      ok: false,
+      status: response.status,
+      error: rawError || "Failed to load reservations.",
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      error: "Network error. Check server connection and try again.",
+    };
+  }
+}
+
+export async function fetchInteractedReservations(
+  token: string,
+): Promise<ApiResponse<ReservationItem[]>> {
+  try {
+    const response = await fetch(`${getBaseUrl()}/reservations/interacted`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as ReservationItem[];
+      return { ok: true, status: response.status, data };
+    }
+
+    const rawError = await response.text();
+    return {
+      ok: false,
+      status: response.status,
+      error: rawError || "Failed to load interacted events.",
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      error: "Network error. Check server connection and try again.",
+    };
+  }
+}
+
+export async function cancelReservation(
+  token: string,
+  reservationId: number,
+): Promise<ApiResponse<ReservationItem>> {
+  try {
+    const response = await fetch(`${getBaseUrl()}/reservations/${reservationId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as ReservationItem;
+      return { ok: true, status: response.status, data };
+    }
+
+    const rawError = await response.text();
+    return {
+      ok: false,
+      status: response.status,
+      error: rawError || "Failed to cancel reservation.",
     };
   } catch {
     return {
