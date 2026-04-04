@@ -30,6 +30,7 @@ export interface ReservationItem {
   reservationStatus: string;
   interactionStatus: "REGISTERED" | "PASSED" | "CANCELLED";
   creationDate: string;
+  ticketCount: number;
   event: EventItem;
 }
 
@@ -131,12 +132,13 @@ function authHeaders(token: string) {
 export async function reserveEvent(
   token: string,
   eventId: number,
+  quantity: number,
 ): Promise<ApiResponse<ReservationItem>> {
   try {
     const response = await fetch(`${getBaseUrl()}/reservations`, {
       method: "POST",
       headers: authHeaders(token),
-      body: JSON.stringify({ eventId }),
+      body: JSON.stringify({ eventId, quantity }),
     });
 
     if (response.ok) {

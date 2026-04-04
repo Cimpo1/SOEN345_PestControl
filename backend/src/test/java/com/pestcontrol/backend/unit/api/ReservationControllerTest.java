@@ -46,15 +46,16 @@ class ReservationControllerTest {
         String authorization = "Bearer " + token;
         CreateReservationRequest request = new CreateReservationRequest();
         request.setEventId(5L);
+        request.setQuantity(3);
 
         ReservationResponse mockResponse = createResponse(44L, "REGISTERED");
-        when(reservationService.reserve(15L, 5L)).thenReturn(mockResponse);
+        when(reservationService.reserve(15L, 5L, 3)).thenReturn(mockResponse);
 
         ResponseEntity<ReservationResponse> response = reservationController.reserve(authorization, request);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(44L, response.getBody().getReservationId());
-        verify(reservationService).reserve(15L, 5L);
+        verify(reservationService).reserve(15L, 5L, 3);
     }
 
     @Test

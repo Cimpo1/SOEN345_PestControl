@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -67,9 +68,14 @@ public class ReservationService {
     }
 
     @Transactional
-    public ReservationResponse reserve(Long userId, Long eventId) {
+    public ReservationResponse reserve(Long userId, Long eventId, Integer quantity) {
         if (eventId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "eventId is required");
+        }
+
+        int validatedQuantity = quantity == null ? 1 : quantity;
+        if (validatedQuantity < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "quantity must be at least 1");
         }
 
         User user = getUser(userId);
@@ -93,15 +99,19 @@ public class ReservationService {
                 event,
                 OffsetDateTime.now(clock),
                 ReservationStatus.CONFIRMED,
-                event.getBasePrice());
+                event.getBasePrice().multiply(java.math.BigDecimal.valueOf(validatedQuantity)));
 
         Reservation saved = reservationRepository.save(reservation);
 
-        Ticket ticket = ticketRepository.save(new Ticket(saved, saved.getTotalPrice()));
-        saved.getTickets().add(ticket);
+        List<Ticket> ticketsToCreate = new ArrayList<>();
+        for (int i = 0; i < validatedQuantity; i++) {
+            ticketsToCreate.add(new Ticket(saved, event.getBasePrice()));
+        }
+        List<Ticket> savedTickets = ticketRepository.saveAll(ticketsToCreate);
+        saved.getTickets().addAll(savedTickets);
 
         if (saved.getUser().getEmail() != null) {
-            reservationEmailService.sendReservationConfirmation(saved.getUser().getEmail(), saved, List.of(ticket));
+            reservationEmailService.sendReservationConfirmation(saved.getUser().getEmail(), saved, savedTickets);
         }
         return toResponse(saved);
     }
@@ -188,7 +198,9 @@ public class ReservationService {
             interactionStatus = REGISTERED;
         }
 
-        return new ReservationResponse(reservation, interactionStatus);
+        int ticketCount = (int) ticketRepository.countByReservation(reservation);
+
+        return new ReservationResponse(reservation, interactionStatus, ticketCount);
     }
 
 }

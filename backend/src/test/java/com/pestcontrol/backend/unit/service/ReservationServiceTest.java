@@ -117,25 +117,32 @@ class ReservationServiceTest {
                         reservation.setReservationId(99L);
                         return reservation;
                 });
-                when(ticketRepository.save(any())).thenAnswer(invocation -> {
-                        Ticket ticket = invocation.getArgument(0);
-                        ticket.setTicketId(199L);
-                        ticket.setStatus(TicketStatus.ISSUED);
-                        return ticket;
+                when(ticketRepository.saveAll(any())).thenAnswer(invocation -> {
+                        @SuppressWarnings("unchecked")
+                        List<Ticket> tickets = (List<Ticket>) invocation.getArgument(0);
+                        long id = 199L;
+                        for (Ticket ticket : tickets) {
+                                ticket.setTicketId(id++);
+                                ticket.setStatus(TicketStatus.ISSUED);
+                        }
+                        return tickets;
                 });
 
-                ReservationResponse response = reservationService.reserve(7L, 10L);
+                ReservationResponse response = reservationService.reserve(7L, 10L, 2);
 
                 assertEquals(99L, response.getReservationId());
                 assertEquals("CONFIRMED", response.getReservationStatus());
                 assertEquals("REGISTERED", response.getInteractionStatus());
 
                 ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
+                ArgumentCaptor<List> emailTicketsCaptor = ArgumentCaptor.forClass(List.class);
                 verify(reservationRepository).save(captor.capture());
                 assertEquals(ReservationStatus.CONFIRMED, captor.getValue().getStatus());
-                verify(ticketRepository).save(any(Ticket.class));
+                assertEquals(new BigDecimal("119.98"), captor.getValue().getTotalPrice());
+                verify(ticketRepository).saveAll(any());
                 verify(reservationEmailService).sendReservationConfirmation(eq("customer@test.com"),
-                                any(Reservation.class), any());
+                                any(Reservation.class), emailTicketsCaptor.capture());
+                assertEquals(2, emailTicketsCaptor.getValue().size());
         }
 
         @Test
@@ -150,14 +157,13 @@ class ReservationServiceTest {
                         reservation.setReservationId(99L);
                         return reservation;
                 });
-                when(ticketRepository.save(any())).thenAnswer(invocation -> {
-                        Ticket ticket = invocation.getArgument(0);
-                        ticket.setTicketId(199L);
-                        ticket.setStatus(TicketStatus.ISSUED);
-                        return ticket;
+                when(ticketRepository.saveAll(any())).thenAnswer(invocation -> {
+                        @SuppressWarnings("unchecked")
+                        List<Ticket> tickets = (List<Ticket>) invocation.getArgument(0);
+                        return tickets;
                 });
 
-                reservationService.reserve(7L, 10L);
+                reservationService.reserve(7L, 10L, 1);
 
                 verify(reservationEmailService, never()).sendReservationConfirmation(any(), any(), any());
         }
@@ -177,7 +183,7 @@ class ReservationServiceTest {
                                 .thenReturn(List.of(existing));
 
                 ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                                () -> reservationService.reserve(7L, 10L));
+                                () -> reservationService.reserve(7L, 10L, 1));
 
                 assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
         }
@@ -188,7 +194,7 @@ class ReservationServiceTest {
                 when(eventRepository.findById(11L)).thenReturn(Optional.of(pastEvent));
 
                 ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                                () -> reservationService.reserve(7L, 11L));
+                                () -> reservationService.reserve(7L, 11L, 1));
 
                 assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         }
@@ -196,7 +202,7 @@ class ReservationServiceTest {
         @Test
         void reserve_whenEventIdMissing_throwsBadRequest() {
                 ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                                () -> reservationService.reserve(7L, null));
+                                () -> reservationService.reserve(7L, null, 1));
 
                 assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         }
@@ -206,7 +212,7 @@ class ReservationServiceTest {
                 when(userRepository.findById(7L)).thenReturn(Optional.empty());
 
                 ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                                () -> reservationService.reserve(7L, 10L));
+                                () -> reservationService.reserve(7L, 10L, 1));
 
                 assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
         }
@@ -217,7 +223,7 @@ class ReservationServiceTest {
                 when(eventRepository.findById(10L)).thenReturn(Optional.empty());
 
                 ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                                () -> reservationService.reserve(7L, 10L));
+                                () -> reservationService.reserve(7L, 10L, 1));
 
                 assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
         }
@@ -238,7 +244,7 @@ class ReservationServiceTest {
                 when(eventRepository.findById(12L)).thenReturn(Optional.of(cancelledEvent));
 
                 ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                                () -> reservationService.reserve(7L, 12L));
+                                () -> reservationService.reserve(7L, 12L, 1));
 
                 assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         }
@@ -428,5 +434,13 @@ class ReservationServiceTest {
                 verify(ticketRepository, never()).saveAll(any());
                 verify(reservationEmailService).sendCancellationConfirmation(eq("customer@test.com"),
                                 any(Reservation.class), any());
+        }
+
+        @Test
+        void reserve_whenQuantityInvalid_throwsBadRequest() {
+                ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                                () -> reservationService.reserve(7L, 10L, 0));
+
+                assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         }
 }

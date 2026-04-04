@@ -182,6 +182,9 @@ export default function ReservationDetailsScreen({ navigation, route }: Props) {
           <Text style={styles.value}>
             Status: {reservation.interactionStatus}
           </Text>
+          <Text style={styles.value}>
+            Tickets: {reservation.ticketCount}
+          </Text>
         </View>
 
         <View style={styles.section}>
