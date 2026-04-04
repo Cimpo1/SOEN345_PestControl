@@ -202,9 +202,8 @@ export default function EventDetailsScreen({ route }: Props) {
             ${Number(event.basePrice).toFixed(2)}
           </Text>
           <Text style={styles.value}>
-            Total for {ticketQuantity} ticket{ticketQuantity > 1 ? "s" : ""}: ${
-              (Number(event.basePrice) * ticketQuantity).toFixed(2)
-            }
+            Total for {ticketQuantity} ticket{ticketQuantity > 1 ? "s" : ""}: $
+            {(Number(event.basePrice) * ticketQuantity).toFixed(2)}
           </Text>
         </View>
 
@@ -223,7 +222,9 @@ export default function EventDetailsScreen({ route }: Props) {
           <View style={styles.quantityRow}>
             <Pressable
               style={styles.quantityButton}
-              onPress={() => setTicketQuantity((current) => Math.max(1, current - 1))}
+              onPress={() =>
+                setTicketQuantity((current) => Math.max(1, current - 1))
+              }
               disabled={reserveDisabled}
             >
               <Text style={styles.quantityButtonText}>-</Text>
@@ -233,7 +234,9 @@ export default function EventDetailsScreen({ route }: Props) {
 
             <Pressable
               style={styles.quantityButton}
-              onPress={() => setTicketQuantity((current) => Math.min(10, current + 1))}
+              onPress={() =>
+                setTicketQuantity((current) => Math.min(10, current + 1))
+              }
               disabled={reserveDisabled}
             >
               <Text style={styles.quantityButtonText}>+</Text>
