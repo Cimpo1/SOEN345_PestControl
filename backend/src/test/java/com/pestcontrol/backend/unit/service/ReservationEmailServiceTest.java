@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,9 +53,10 @@ class ReservationEmailServiceTest {
         verify(mailSender).send(captor.capture());
 
         SimpleMailMessage sent = captor.getValue();
-        assertTrue(sent.getTo() != null && sent.getTo().length == 1 && "customer@example.com".equals(sent.getTo()[0]));
-        assertTrue("Reservation Confirmed".equals(sent.getSubject()));
-        assertTrue("noreply@pestcontrol.com".equals(sent.getFrom()));
+        assertEquals(1, sent.getTo().length);
+        assertEquals("customer@example.com", sent.getTo()[0]);
+        assertEquals("Reservation Confirmed", sent.getSubject());
+        assertEquals("noreply@pestcontrol.com", sent.getFrom());
 
         String body = sent.getText();
         assertTrue(body != null && body.contains("Reservation ID: 42"));
@@ -81,7 +83,7 @@ class ReservationEmailServiceTest {
         verify(mailSender).send(captor.capture());
 
         SimpleMailMessage sent = captor.getValue();
-        assertTrue("Reservation Cancelled".equals(sent.getSubject()));
+        assertEquals("Reservation Cancelled", sent.getSubject());
 
         String body = sent.getText();
         assertTrue(body != null && body.contains("Your reservation has been cancelled."));
