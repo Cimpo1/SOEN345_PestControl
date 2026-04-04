@@ -117,6 +117,42 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should successfully register user with blank email and phone only")
+    void testRegisterSuccessWithBlankEmailAndPhoneOnly() {
+        RegisterRequest request = new RegisterRequest();
+        request.fullName = "Phone User";
+        request.email = "   ";
+        request.phoneNumber = "2223334444";
+        request.password = "securePassword123";
+
+        when(userRepository.existsByPhoneNumber(request.phoneNumber)).thenReturn(false);
+        when(passwordEncoder.encode(request.password)).thenReturn("encodedPassword");
+
+        authService.register(request);
+
+        verify(userRepository, times(1)).save(argThat(user -> user.getEmail() == null &&
+                "2223334444".equals(user.getPhoneNumber())));
+    }
+
+    @Test
+    @DisplayName("Should successfully register user with email only and blank phone")
+    void testRegisterSuccessWithEmailOnlyAndBlankPhone() {
+        RegisterRequest request = new RegisterRequest();
+        request.fullName = "Email User";
+        request.email = "email-only@example.com";
+        request.phoneNumber = "   ";
+        request.password = "securePassword123";
+
+        when(userRepository.existsByEmail(request.email)).thenReturn(false);
+        when(passwordEncoder.encode(request.password)).thenReturn("encodedPassword");
+
+        authService.register(request);
+
+        verify(userRepository, times(1)).save(argThat(user -> "email-only@example.com".equals(user.getEmail()) &&
+                user.getPhoneNumber() == null));
+    }
+
+    @Test
     @DisplayName("Should throw exception when both email and phone are null")
     void testRegisterFailsWithoutEmailOrPhone() {
         // Arrange
@@ -221,6 +257,20 @@ class AuthServiceTest {
         LoginRequest request = new LoginRequest();
         request.setEmail(null);
         request.setPhoneNumber(null);
+        request.setPassword("anyPassword");
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> authService.login(request));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals("Missing credentials", ex.getReason());
+    }
+
+    @Test
+    @DisplayName("Should throw BAD_REQUEST when both email and phone are blank")
+    void testLoginFailsWithBlankEmailAndPhone() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("   ");
+        request.setPhoneNumber("   ");
         request.setPassword("anyPassword");
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
