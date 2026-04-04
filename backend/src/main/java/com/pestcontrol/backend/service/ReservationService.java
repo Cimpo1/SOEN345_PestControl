@@ -3,11 +3,14 @@ package com.pestcontrol.backend.service;
 import com.pestcontrol.backend.api.dto.ReservationResponse;
 import com.pestcontrol.backend.domain.Event;
 import com.pestcontrol.backend.domain.Reservation;
+import com.pestcontrol.backend.domain.Ticket;
 import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.EventStatus;
 import com.pestcontrol.backend.domain.enums.ReservationStatus;
+import com.pestcontrol.backend.domain.enums.TicketStatus;
 import com.pestcontrol.backend.infrastructure.repositories.EventRepository;
 import com.pestcontrol.backend.infrastructure.repositories.ReservationRepository;
+import com.pestcontrol.backend.infrastructure.repositories.TicketRepository;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,24 +31,38 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
+    private final TicketRepository ticketRepository;
+    private final ReservationEmailService reservationEmailService;
     private final Clock clock;
 
     @Autowired
     public ReservationService(
             ReservationRepository reservationRepository,
             UserRepository userRepository,
-            EventRepository eventRepository) {
-        this(reservationRepository, userRepository, eventRepository, Clock.systemUTC());
+            EventRepository eventRepository,
+            TicketRepository ticketRepository,
+            ReservationEmailService reservationEmailService) {
+        this(
+                reservationRepository,
+                userRepository,
+                eventRepository,
+                ticketRepository,
+                reservationEmailService,
+                Clock.systemUTC());
     }
 
     public ReservationService(
             ReservationRepository reservationRepository,
             UserRepository userRepository,
             EventRepository eventRepository,
+            TicketRepository ticketRepository,
+            ReservationEmailService reservationEmailService,
             Clock clock) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
+        this.ticketRepository = ticketRepository;
+        this.reservationEmailService = reservationEmailService;
         this.clock = clock;
     }
 
@@ -79,6 +96,13 @@ public class ReservationService {
                 event.getBasePrice());
 
         Reservation saved = reservationRepository.save(reservation);
+
+        Ticket ticket = ticketRepository.save(new Ticket(saved, saved.getTotalPrice()));
+        saved.getTickets().add(ticket);
+
+        if (saved.getUser().getEmail() != null) {
+            reservationEmailService.sendReservationConfirmation(saved.getUser().getEmail(), saved, List.of(ticket));
+        }
         return toResponse(saved);
     }
 
@@ -120,6 +144,18 @@ public class ReservationService {
 
         reservation.setStatus(ReservationStatus.CANCELLED);
         Reservation saved = reservationRepository.save(reservation);
+
+        List<Ticket> tickets = ticketRepository.findByReservation(saved);
+        for (Ticket ticket : tickets) {
+            ticket.setStatus(TicketStatus.VOIDED);
+        }
+        if (!tickets.isEmpty()) {
+            ticketRepository.saveAll(tickets);
+        }
+
+        if (saved.getUser().getEmail() != null) {
+            reservationEmailService.sendCancellationConfirmation(saved.getUser().getEmail(), saved, tickets);
+        }
         return toResponse(saved);
     }
 
