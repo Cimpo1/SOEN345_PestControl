@@ -41,6 +41,7 @@ export default function EventDetailsScreen({ route }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [reserving, setReserving] = useState(false);
+  const [ticketQuantity, setTicketQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [reservationError, setReservationError] = useState<string | null>(null);
 
@@ -118,7 +119,7 @@ export default function EventDetailsScreen({ route }: Props) {
     setReservationError(null);
     setReserving(true);
 
-    const result = await reserveEvent(token, eventId);
+    const result = await reserveEvent(token, eventId, ticketQuantity);
     setReserving(false);
 
     if (result.ok && result.data) {
@@ -200,6 +201,10 @@ export default function EventDetailsScreen({ route }: Props) {
           <Text style={styles.value}>
             ${Number(event.basePrice).toFixed(2)}
           </Text>
+          <Text style={styles.value}>
+            Total for {ticketQuantity} ticket{ticketQuantity > 1 ? "s" : ""}: $
+            {(Number(event.basePrice) * ticketQuantity).toFixed(2)}
+          </Text>
         </View>
 
         <View style={styles.section}>
@@ -213,6 +218,31 @@ export default function EventDetailsScreen({ route }: Props) {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.label}>Tickets</Text>
+          <View style={styles.quantityRow}>
+            <Pressable
+              style={styles.quantityButton}
+              onPress={() =>
+                setTicketQuantity((current) => Math.max(1, current - 1))
+              }
+              disabled={reserveDisabled}
+            >
+              <Text style={styles.quantityButtonText}>-</Text>
+            </Pressable>
+
+            <Text style={styles.quantityValue}>{ticketQuantity}</Text>
+
+            <Pressable
+              style={styles.quantityButton}
+              onPress={() =>
+                setTicketQuantity((current) => Math.min(10, current + 1))
+              }
+              disabled={reserveDisabled}
+            >
+              <Text style={styles.quantityButtonText}>+</Text>
+            </Pressable>
+          </View>
+
           <Pressable
             style={[
               styles.reserveButton,

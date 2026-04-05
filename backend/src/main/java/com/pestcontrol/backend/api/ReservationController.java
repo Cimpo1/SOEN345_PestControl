@@ -32,7 +32,7 @@ public class ReservationController {
             @RequestHeader("Authorization") String authorization,
             @RequestBody CreateReservationRequest request) {
         Long userId = resolveUserId(authorization);
-        ReservationResponse response = reservationService.reserve(userId, request.getEventId());
+        ReservationResponse response = reservationService.reserve(userId, request.getEventId(), request.getQuantity());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

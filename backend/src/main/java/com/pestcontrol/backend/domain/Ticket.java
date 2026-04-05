@@ -1,5 +1,6 @@
 package com.pestcontrol.backend.domain;
 
+import com.pestcontrol.backend.domain.enums.TicketStatus;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -20,12 +21,24 @@ public class Ticket {
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TicketStatus status;
+
     public Ticket() {
     }
 
     public Ticket(Reservation reservation, BigDecimal price) {
         this.reservation = reservation;
         this.price = price;
+        this.status = TicketStatus.ISSUED;
+    }
+
+    @PrePersist
+    public void prePersist() {
+        if (status == null) {
+            status = TicketStatus.ISSUED;
+        }
     }
 
     public Long getTicketId() {
@@ -50,5 +63,13 @@ public class Ticket {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public TicketStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TicketStatus status) {
+        this.status = status;
     }
 }

@@ -9,13 +9,19 @@ public class ReservationResponse {
     private String reservationStatus;
     private String interactionStatus;
     private OffsetDateTime creationDate;
+    private Integer ticketCount;
     private EventResponse event;
 
     public ReservationResponse(Reservation reservation, String interactionStatus) {
+        this(reservation, interactionStatus, 0);
+    }
+
+    public ReservationResponse(Reservation reservation, String interactionStatus, Integer ticketCount) {
         this.reservationId = reservation.getReservationId();
         this.reservationStatus = reservation.getStatus().name();
         this.interactionStatus = interactionStatus;
         this.creationDate = reservation.getCreationDate();
+        this.ticketCount = ticketCount;
         this.event = new EventResponse(reservation.getEvent());
     }
 
@@ -49,6 +55,14 @@ public class ReservationResponse {
 
     public void setCreationDate(OffsetDateTime creationDate) {
         this.creationDate = creationDate;
+    }
+
+    public Integer getTicketCount() {
+        return ticketCount;
+    }
+
+    public void setTicketCount(Integer ticketCount) {
+        this.ticketCount = ticketCount;
     }
 
     public EventResponse getEvent() {

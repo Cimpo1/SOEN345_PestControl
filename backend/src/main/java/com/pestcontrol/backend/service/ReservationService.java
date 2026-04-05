@@ -3,11 +3,14 @@ package com.pestcontrol.backend.service;
 import com.pestcontrol.backend.api.dto.ReservationResponse;
 import com.pestcontrol.backend.domain.Event;
 import com.pestcontrol.backend.domain.Reservation;
+import com.pestcontrol.backend.domain.Ticket;
 import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.EventStatus;
 import com.pestcontrol.backend.domain.enums.ReservationStatus;
+import com.pestcontrol.backend.domain.enums.TicketStatus;
 import com.pestcontrol.backend.infrastructure.repositories.EventRepository;
 import com.pestcontrol.backend.infrastructure.repositories.ReservationRepository;
+import com.pestcontrol.backend.infrastructure.repositories.TicketRepository;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -28,31 +32,50 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
+    private final TicketRepository ticketRepository;
+    private final ReservationEmailService reservationEmailService;
     private final Clock clock;
 
     @Autowired
     public ReservationService(
             ReservationRepository reservationRepository,
             UserRepository userRepository,
-            EventRepository eventRepository) {
-        this(reservationRepository, userRepository, eventRepository, Clock.systemUTC());
+            EventRepository eventRepository,
+            TicketRepository ticketRepository,
+            ReservationEmailService reservationEmailService) {
+        this(
+                reservationRepository,
+                userRepository,
+                eventRepository,
+                ticketRepository,
+                reservationEmailService,
+                Clock.systemUTC());
     }
 
     public ReservationService(
             ReservationRepository reservationRepository,
             UserRepository userRepository,
             EventRepository eventRepository,
+            TicketRepository ticketRepository,
+            ReservationEmailService reservationEmailService,
             Clock clock) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
+        this.ticketRepository = ticketRepository;
+        this.reservationEmailService = reservationEmailService;
         this.clock = clock;
     }
 
     @Transactional
-    public ReservationResponse reserve(Long userId, Long eventId) {
+    public ReservationResponse reserve(Long userId, Long eventId, Integer quantity) {
         if (eventId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "eventId is required");
+        }
+
+        int validatedQuantity = quantity == null ? 1 : quantity;
+        if (validatedQuantity < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "quantity must be at least 1");
         }
 
         User user = getUser(userId);
@@ -76,9 +99,20 @@ public class ReservationService {
                 event,
                 OffsetDateTime.now(clock),
                 ReservationStatus.CONFIRMED,
-                event.getBasePrice());
+                event.getBasePrice().multiply(java.math.BigDecimal.valueOf(validatedQuantity)));
 
         Reservation saved = reservationRepository.save(reservation);
+
+        List<Ticket> ticketsToCreate = new ArrayList<>();
+        for (int i = 0; i < validatedQuantity; i++) {
+            ticketsToCreate.add(new Ticket(saved, event.getBasePrice()));
+        }
+        List<Ticket> savedTickets = ticketRepository.saveAll(ticketsToCreate);
+        saved.getTickets().addAll(savedTickets);
+
+        if (saved.getUser().getEmail() != null) {
+            reservationEmailService.sendReservationConfirmation(saved.getUser().getEmail(), saved, savedTickets);
+        }
         return toResponse(saved);
     }
 
@@ -120,6 +154,18 @@ public class ReservationService {
 
         reservation.setStatus(ReservationStatus.CANCELLED);
         Reservation saved = reservationRepository.save(reservation);
+
+        List<Ticket> tickets = ticketRepository.findByReservation(saved);
+        for (Ticket ticket : tickets) {
+            ticket.setStatus(TicketStatus.VOIDED);
+        }
+        if (!tickets.isEmpty()) {
+            ticketRepository.saveAll(tickets);
+        }
+
+        if (saved.getUser().getEmail() != null) {
+            reservationEmailService.sendCancellationConfirmation(saved.getUser().getEmail(), saved, tickets);
+        }
         return toResponse(saved);
     }
 
@@ -152,7 +198,9 @@ public class ReservationService {
             interactionStatus = REGISTERED;
         }
 
-        return new ReservationResponse(reservation, interactionStatus);
+        int ticketCount = (int) ticketRepository.countByReservation(reservation);
+
+        return new ReservationResponse(reservation, interactionStatus, ticketCount);
     }
 
 }

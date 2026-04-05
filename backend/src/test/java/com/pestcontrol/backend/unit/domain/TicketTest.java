@@ -2,6 +2,7 @@ package com.pestcontrol.backend.unit.domain;
 
 import com.pestcontrol.backend.domain.Reservation;
 import com.pestcontrol.backend.domain.Ticket;
+import com.pestcontrol.backend.domain.enums.TicketStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ class TicketTest {
         assertNotNull(ticket);
         assertEquals(reservation, ticket.getReservation());
         assertEquals(BigDecimal.valueOf(50.00), ticket.getPrice());
+        assertEquals(TicketStatus.ISSUED, ticket.getStatus());
     }
 
     @Test
@@ -78,6 +80,7 @@ class TicketTest {
         assertNotNull(newTicket);
         assertNull(newTicket.getTicketId());
         assertNull(newTicket.getReservation());
+        assertNull(newTicket.getStatus());
     }
 
     @Test
@@ -169,5 +172,12 @@ class TicketTest {
         // Assert
         assertEquals(BigDecimal.valueOf(100.00), ticket.getPrice());
     }
-}
 
+    @Test
+    @DisplayName("Should set and get ticket status")
+    void testSetGetStatus() {
+        ticket.setStatus(TicketStatus.VOIDED);
+
+        assertEquals(TicketStatus.VOIDED, ticket.getStatus());
+    }
+}

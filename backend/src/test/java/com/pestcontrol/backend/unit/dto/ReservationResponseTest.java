@@ -30,13 +30,14 @@ class ReservationResponseTest {
         when(reservation.getEvent()).thenReturn(event);
         when(event.getLocation()).thenReturn(location);
 
-        ReservationResponse response = new ReservationResponse(reservation, "REGISTERED");
+        ReservationResponse response = new ReservationResponse(reservation, "REGISTERED", 3);
 
         assertAll(
                 () -> assertEquals(7L, response.getReservationId()),
                 () -> assertEquals("CONFIRMED", response.getReservationStatus()),
                 () -> assertEquals("REGISTERED", response.getInteractionStatus()),
-                () -> assertEquals(creationDate, response.getCreationDate()));
+                () -> assertEquals(creationDate, response.getCreationDate()),
+                () -> assertEquals(3, response.getTicketCount()));
     }
 
     @Test
@@ -56,6 +57,7 @@ class ReservationResponseTest {
         response.setReservationStatus("CANCELLED");
         response.setInteractionStatus("CANCELLED");
         response.setCreationDate(creationDate);
+        response.setTicketCount(4);
         response.setEvent(eventResponse);
 
         assertAll(
@@ -63,6 +65,7 @@ class ReservationResponseTest {
                 () -> assertEquals("CANCELLED", response.getReservationStatus()),
                 () -> assertEquals("CANCELLED", response.getInteractionStatus()),
                 () -> assertEquals(creationDate, response.getCreationDate()),
+                () -> assertEquals(4, response.getTicketCount()),
                 () -> assertEquals(eventResponse, response.getEvent()));
     }
 }

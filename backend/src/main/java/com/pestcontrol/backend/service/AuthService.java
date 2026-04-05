@@ -23,17 +23,18 @@ public class AuthService {
     }
 
     public void register(RegisterRequest request) {
-        if (request.email == null && request.phoneNumber == null) {
+        String normalizedEmail = normalizeEmail(request.email);
+        String normalizedPhoneNumber = normalizeValue(request.phoneNumber);
+
+        if (normalizedEmail == null && normalizedPhoneNumber == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email or phone required");
         }
-
-        String normalizedEmail = request.email == null ? null : request.email.toLowerCase();
 
         // Duplicates
         if (normalizedEmail != null && userRepository.existsByEmail(normalizedEmail)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
-        if (request.phoneNumber != null && userRepository.existsByPhoneNumber(request.phoneNumber)) {
+        if (normalizedPhoneNumber != null && userRepository.existsByPhoneNumber(normalizedPhoneNumber)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Phone already exists");
         }
 
@@ -42,23 +43,26 @@ public class AuthService {
         User user = new User();
         user.setFullName(request.fullName);
         user.setEmail(normalizedEmail);
-        user.setPhoneNumber(request.phoneNumber);
+        user.setPhoneNumber(normalizedPhoneNumber);
         user.setPasswordHash(passwordHash);
         user.setUserRole(UserRole.CUSTOMER);
         userRepository.save(user);
     }
 
     public LoginResponse login(LoginRequest request) {
-        if (request.getEmail() == null && request.getPhoneNumber() == null) {
+        String normalizedEmail = normalizeEmail(request.getEmail());
+        String normalizedPhoneNumber = normalizeValue(request.getPhoneNumber());
+
+        if (normalizedEmail == null && normalizedPhoneNumber == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing credentials");
         }
 
         User user;
-        if (request.getEmail() != null) {
-            user = userRepository.findByEmail(request.getEmail().toLowerCase())
+        if (normalizedEmail != null) {
+            user = userRepository.findByEmail(normalizedEmail)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
         } else {
-            user = userRepository.findByPhoneNumber(request.getPhoneNumber())
+            user = userRepository.findByPhoneNumber(normalizedPhoneNumber)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
         }
 
@@ -68,5 +72,19 @@ public class AuthService {
 
         String token = JWTService.generateToken(user);
         return new LoginResponse(token, new UserResponse(user));
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        return email.toLowerCase();
+    }
+
+    private String normalizeValue(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value;
     }
 }

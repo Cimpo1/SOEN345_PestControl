@@ -65,15 +65,33 @@ export default function AuthScreen() {
       const phoneRegex: RegExp = /^\d{3}-\d{3}-\d{4}$/;
       const emailRegex: RegExp =
         /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailRegex.test(email) && !phoneRegex.test(phoneNumber)) {
-        setErrorMessage("Please enter a valid email and phone number.");
+
+      const trimmedEmail = email.trim();
+      const trimmedPhoneNumber = phoneNumber.trim();
+      const hasEmail = trimmedEmail.length > 0;
+      const hasPhone = trimmedPhoneNumber.length > 0;
+
+      if (!hasEmail && !hasPhone) {
+        setErrorMessage("Please enter an email, a phone number, or both.");
+        return;
+      }
+
+      if (hasEmail && !emailRegex.test(trimmedEmail)) {
+        setErrorMessage("Please enter a valid email address.");
+        return;
+      }
+
+      if (hasPhone && !phoneRegex.test(trimmedPhoneNumber)) {
+        setErrorMessage(
+          "Please enter a valid phone number (e.g., 123-456-7890).",
+        );
         return;
       }
 
       const result = await registerUser({
         fullName,
-        email,
-        phoneNumber,
+        email: hasEmail ? trimmedEmail : null,
+        phoneNumber: hasPhone ? trimmedPhoneNumber : null,
         password,
       });
 
@@ -85,7 +103,7 @@ export default function AuthScreen() {
           fullName: "",
           email: "",
           phoneNumber: "",
-          contact: email,
+          contact: hasEmail ? trimmedEmail : trimmedPhoneNumber,
           password: "",
         }));
       } else {

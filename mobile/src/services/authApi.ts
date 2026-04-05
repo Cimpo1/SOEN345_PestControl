@@ -1,7 +1,7 @@
 export interface SignupPayload {
   fullName: string;
-  email: string;
-  phoneNumber: string;
+  email: string | null;
+  phoneNumber: string | null;
   password: string;
 }
 
