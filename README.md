@@ -15,6 +15,23 @@ This project is a mobile application that allows users to view and reserve ticke
    ```
    mvn spring-boot:run
    ```
+> Note: If you are running the backend locally, you will need to include a `secrets.properties` file in the `src/main/resources` directory with the following content:
+```
+# secrets.properties
+DB_PASSWORD=your_database_password
+MAIL_HOST=your_mail_host
+MAIL_PORT=your_mail_port
+MAIL_USERNAME=your_mail_username
+MAIL_PASSWORD=your_mail_password
+MAIL_FROM=your_mail_from_address
+MAIL_SMTP_AUTH=true
+MAIL_SMTP_STARTTLS=
+MAIL_SMTP_SSL_ENABLE=true
+MAIL_SSL_TRUST=your_mail_ssl_trust
+MAIL_SSL_CHECK_SERVER_IDENTITY=false
+```
+
+
 ### Mobile Application (React Native with Expo):
 1. Install Node.js and npm.
 2. Navigate to the mobile directory and run the following command to install dependencies:
