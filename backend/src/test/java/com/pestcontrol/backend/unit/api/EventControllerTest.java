@@ -22,7 +22,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -164,9 +163,11 @@ class EventControllerTest {
             jwtService.when(() -> JWTService.validateToken("valid-token")).thenReturn(true);
             jwtService.when(() -> JWTService.getRole("valid-token")).thenReturn("USER");
 
+            CreateEventRequest request = new CreateEventRequest();
+
             ResponseStatusException ex = assertThrows(
                     ResponseStatusException.class,
-                    () -> eventController.createEvent("Bearer valid-token", new CreateEventRequest()));
+                    () -> eventController.createEvent("Bearer valid-token", request));
 
             assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         }
@@ -198,9 +199,11 @@ class EventControllerTest {
         try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
             jwtService.when(() -> JWTService.validateToken("bad-token")).thenReturn(false);
 
+            UpdateEventRequest request = new UpdateEventRequest();
+
             ResponseStatusException ex = assertThrows(
                     ResponseStatusException.class,
-                    () -> eventController.updateEvent("Bearer bad-token", 99L, new UpdateEventRequest()));
+                    () -> eventController.updateEvent("Bearer bad-token", 99L, request));
 
             assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
         }
