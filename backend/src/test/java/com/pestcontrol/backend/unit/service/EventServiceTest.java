@@ -33,9 +33,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -68,7 +70,7 @@ class EventServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(eventRepository.findByStatus(EventStatus.SCHEDULED)).thenReturn(List.of());
+        lenient().when(eventRepository.findByStatus(EventStatus.SCHEDULED)).thenReturn(List.of());
 
         Location montreal = new Location("Bell Centre", "1 Arena Way", "Montreal", "QC", "H1A1A1");
         montreal.setLocationId(1L);
@@ -171,6 +173,36 @@ class EventServiceTest {
     }
 
     @Test
+    void getAdminEvents_whenStatusBlank_returnsAllEvents() {
+        when(eventRepository.findAll()).thenReturn(List.of(cancelledEvent, lavalSports, montrealConcert));
+
+        List<EventResponse> result = eventService.getAdminEvents("   ");
+
+        assertEquals(3, result.size());
+        assertEquals(12L, result.get(0).getEventId());
+        assertEquals(10L, result.get(2).getEventId());
+    }
+
+    @Test
+    void getAdminEvents_whenStatusProvided_filtersEvents() {
+        when(eventRepository.findByStatus(EventStatus.CANCELLED)).thenReturn(List.of(cancelledEvent));
+
+        List<EventResponse> result = eventService.getAdminEvents("cancelled");
+
+        assertEquals(1, result.size());
+        assertEquals(12L, result.get(0).getEventId());
+    }
+
+    @Test
+    void getAdminEvents_whenStatusInvalid_throwsBadRequest() {
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.getAdminEvents("unknown"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
     void cancelEvent_whenScheduled_cascadesReservationAndTicketUpdatesAndSendsEmails() {
         User customerWithEmail = new User("Alice", "alice@example.com", "5141112222", "hash", UserRole.CUSTOMER);
         customerWithEmail.setUserId(50L);
@@ -232,6 +264,87 @@ class EventServiceTest {
                 () -> eventService.cancelEvent(999L, 12L));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+    }
+
+    @Test
+    void createEvent_whenLocationExists_createsEventWithExistingLocation() {
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(montrealConcert.getLocation()));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var request = new com.pestcontrol.backend.api.dto.CreateEventRequest();
+        request.setTitle("New Concert");
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-01T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-01T22:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("75.00"));
+        request.setLocationId(1L);
+
+        EventResponse response = eventService.createEvent(1L, request);
+
+        assertEquals("New Concert", response.getTitle());
+        assertEquals("Bell Centre", response.getLocation().getName());
+        verify(eventRepository).save(any(Event.class));
+    }
+
+    @Test
+    void createEvent_whenInlineLocationProvided_createsLocationAndEvent() {
+        when(locationRepository.save(any(Location.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var locationRequest = new com.pestcontrol.backend.api.dto.EventLocationRequest();
+        locationRequest.setName("New Venue");
+        locationRequest.setAddressLine("123 Main St");
+        locationRequest.setCity("Montreal");
+        locationRequest.setProvince("QC");
+        locationRequest.setPostalCode("H1H1H1");
+
+        var request = new com.pestcontrol.backend.api.dto.CreateEventRequest();
+        request.setTitle("Inline Venue Concert");
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-10T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-10T22:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("80.00"));
+        request.setLocation(locationRequest);
+
+        EventResponse response = eventService.createEvent(1L, request);
+
+        assertEquals("Inline Venue Concert", response.getTitle());
+        assertEquals("New Venue", response.getLocation().getName());
+        verify(locationRepository).save(any(Location.class));
+    }
+
+    @Test
+    void updateEvent_whenTimeDoesNotChange_doesNotNotifyActiveReservations() {
+        User customer = new User("Alice", "alice@example.com", "5141112222", "hash", UserRole.CUSTOMER);
+        customer.setUserId(50L);
+
+        Reservation activeReservation = new Reservation(
+                customer,
+                montrealConcert,
+                OffsetDateTime.parse("2026-07-01T10:00:00Z"),
+                ReservationStatus.CONFIRMED,
+                new BigDecimal("59.99"));
+        activeReservation.setReservationId(300L);
+
+        Ticket activeTicket = new Ticket(activeReservation, new BigDecimal("59.99"));
+        activeTicket.setTicketId(900L);
+
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(montrealConcert));
+        when(eventRepository.save(montrealConcert)).thenReturn(montrealConcert);
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(montrealConcert.getLocation()));
+
+        var request = new com.pestcontrol.backend.api.dto.UpdateEventRequest();
+        request.setTitle("Summer Jazz Festival");
+        request.setStartDateTime(OffsetDateTime.parse("2026-07-10T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-07-10T22:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("59.99"));
+        request.setLocationId(1L);
+
+        EventResponse response = eventService.updateEvent(999L, 10L, request);
+
+        assertNotNull(response);
+        verify(reservationEmailService, never()).sendEventTimeUpdatedConfirmation(any(), any(), any(), any(), any());
     }
 
     @Test

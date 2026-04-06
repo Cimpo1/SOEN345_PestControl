@@ -1,7 +1,9 @@
 package com.pestcontrol.backend.unit.api;
 
 import com.pestcontrol.backend.api.EventController;
+import com.pestcontrol.backend.api.dto.CreateEventRequest;
 import com.pestcontrol.backend.api.dto.EventResponse;
+import com.pestcontrol.backend.api.dto.UpdateEventRequest;
 import com.pestcontrol.backend.domain.enums.Category;
 import com.pestcontrol.backend.service.JWTService;
 import com.pestcontrol.backend.service.EventService;
@@ -20,6 +22,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -108,6 +111,61 @@ class EventControllerTest {
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             verify(eventService).getAdminEvents("SCHEDULED");
+        }
+    }
+
+    @Test
+    void createEvent_whenValidAdminToken_shouldCreateEvent() {
+        try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
+            jwtService.when(() -> JWTService.validateToken("valid-token")).thenReturn(true);
+            jwtService.when(() -> JWTService.getRole("valid-token")).thenReturn("ADMIN");
+            jwtService.when(() -> JWTService.getUserId("valid-token")).thenReturn(10L);
+
+            CreateEventRequest request = new CreateEventRequest();
+            when(eventService.createEvent(eq(10L), any(CreateEventRequest.class)))
+                    .thenReturn(org.mockito.Mockito.mock(EventResponse.class));
+
+            ResponseEntity<EventResponse> response = eventController.createEvent("Bearer valid-token", request);
+
+            assertEquals(HttpStatus.CREATED, response.getStatusCode());
+            verify(eventService).createEvent(eq(10L), any(CreateEventRequest.class));
+        }
+    }
+
+    @Test
+    void updateEvent_whenValidAdminToken_shouldUpdateEvent() {
+        try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
+            jwtService.when(() -> JWTService.validateToken("valid-token")).thenReturn(true);
+            jwtService.when(() -> JWTService.getRole("valid-token")).thenReturn("ADMIN");
+            jwtService.when(() -> JWTService.getUserId("valid-token")).thenReturn(10L);
+
+            UpdateEventRequest request = new UpdateEventRequest();
+            when(eventService.updateEvent(eq(10L), eq(99L), any(UpdateEventRequest.class)))
+                    .thenReturn(org.mockito.Mockito.mock(EventResponse.class));
+
+            ResponseEntity<EventResponse> response = eventController.updateEvent(
+                    "Bearer valid-token",
+                    99L,
+                    request);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            verify(eventService).updateEvent(eq(10L), eq(99L), any(UpdateEventRequest.class));
+        }
+    }
+
+    @Test
+    void cancelEvent_whenValidAdminToken_shouldCancelEvent() {
+        try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
+            jwtService.when(() -> JWTService.validateToken("valid-token")).thenReturn(true);
+            jwtService.when(() -> JWTService.getRole("valid-token")).thenReturn("ADMIN");
+            jwtService.when(() -> JWTService.getUserId("valid-token")).thenReturn(10L);
+
+            when(eventService.cancelEvent(10L, 99L)).thenReturn(org.mockito.Mockito.mock(EventResponse.class));
+
+            ResponseEntity<EventResponse> response = eventController.cancelEvent("Bearer valid-token", 99L);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            verify(eventService).cancelEvent(10L, 99L);
         }
     }
 }

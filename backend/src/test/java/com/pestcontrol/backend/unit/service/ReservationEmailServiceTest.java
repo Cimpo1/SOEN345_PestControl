@@ -119,6 +119,36 @@ class ReservationEmailServiceTest {
     }
 
     @Test
+    void sendEventTimeUpdatedConfirmation_whenEmailPresent_sendsUpdatedScheduleMessage() {
+        ReservationEmailService service = new ReservationEmailService(mailSender);
+        ReflectionTestUtils.setField(service, "fromAddress", "noreply@pestcontrol.com");
+
+        Reservation reservation = buildReservation(88L, "Rock Show");
+        Ticket ticket = buildTicket(1001L, reservation, "59.99", TicketStatus.ISSUED);
+
+        service.sendEventTimeUpdatedConfirmation(
+                "customer@example.com",
+                reservation,
+                List.of(ticket),
+                "2026-04-10 18:00 UTC",
+                "2026-04-10 21:00 UTC");
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+
+        SimpleMailMessage sent = captor.getValue();
+        assertEquals("Event Time Updated", sent.getSubject());
+
+        String body = sent.getText();
+        assertTrue(body != null && body.contains("time of an event you registered for has been updated"));
+        assertTrue(body.contains("Previous Start: 2026-04-10 18:00 UTC"));
+        assertTrue(body.contains("Previous End: 2026-04-10 21:00 UTC"));
+        assertTrue(body.contains("New Start: 2026-04-10 18:00 UTC"));
+        assertTrue(body.contains("New End: 2026-04-10 21:00 UTC"));
+        assertTrue(body.contains("Ticket ID: 1001"));
+    }
+
+    @Test
     void sendReservationConfirmation_whenEmailIsNull_doesNotSend() {
         ReservationEmailService service = new ReservationEmailService(mailSender);
 
