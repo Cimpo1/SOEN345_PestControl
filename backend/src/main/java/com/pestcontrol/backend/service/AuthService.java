@@ -30,6 +30,10 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email or phone required");
         }
 
+        if (request.password == null || request.password.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password required");
+        }
+
         // Duplicates
         if (normalizedEmail != null && userRepository.existsByEmail(normalizedEmail)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");

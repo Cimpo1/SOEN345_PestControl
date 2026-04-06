@@ -171,6 +171,40 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw BAD_REQUEST when password is null")
+    void testRegisterFailsWithoutPassword() {
+        RegisterRequest request = new RegisterRequest();
+        request.fullName = "Invalid User";
+        request.email = "missing-password@example.com";
+        request.phoneNumber = null;
+        request.password = null;
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.register(request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Password required", exception.getReason());
+        verify(userRepository, never()).save(any(User.class));
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    @DisplayName("Should throw BAD_REQUEST when password is blank")
+    void testRegisterFailsWithBlankPassword() {
+        RegisterRequest request = new RegisterRequest();
+        request.fullName = "Invalid User";
+        request.email = "blank-password@example.com";
+        request.phoneNumber = null;
+        request.password = "   ";
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.register(request));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Password required", exception.getReason());
+        verify(userRepository, never()).save(any(User.class));
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
     @DisplayName("Should throw exception when email already exists")
     void testRegisterFailsWithDuplicateEmail() {
         // Arrange
