@@ -32,6 +32,8 @@ import java.util.Objects;
 
 @Service
 public class EventService {
+    private static final String EVENT_NOT_FOUND_MESSAGE = "Event not found";
+    private static final String TITLE_REQUIRED_MESSAGE = "title is required";
 
     private final EventRepository eventRepository;
     private final LocationRepository locationRepository;
@@ -103,7 +105,7 @@ public class EventService {
         refreshPastStatuses();
 
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE));
 
         return new EventResponse(event);
     }
@@ -132,7 +134,7 @@ public class EventService {
         Location location = resolveLocation(request.getLocationId(), request.getLocation());
         Event event = new Event(
                 location,
-                normalizeRequired(request.getTitle(), "title is required"),
+                normalizeRequired(request.getTitle(), TITLE_REQUIRED_MESSAGE),
                 request.getStartDateTime(),
                 request.getEndDateTime(),
                 parseCategory(request.getCategory()),
@@ -148,7 +150,7 @@ public class EventService {
         validateRequest(request);
 
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE));
 
         refreshPastStatuses();
         if (event.getStatus() != EventStatus.SCHEDULED) {
@@ -161,7 +163,7 @@ public class EventService {
         boolean timeChanged = !previousStartDateTime.equals(request.getStartDateTime())
                 || !previousEndDateTime.equals(request.getEndDateTime());
 
-        event.setTitle(normalizeRequired(request.getTitle(), "title is required"));
+        event.setTitle(normalizeRequired(request.getTitle(), TITLE_REQUIRED_MESSAGE));
         event.setStartDateTime(request.getStartDateTime());
         event.setEndDateTime(request.getEndDateTime());
         event.setCategory(parseCategory(request.getCategory()));
@@ -185,7 +187,7 @@ public class EventService {
         refreshPastStatuses();
 
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE));
 
         if (event.getStatus() == EventStatus.CANCELLED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Event is already cancelled");
@@ -293,7 +295,7 @@ public class EventService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
         validateDatesAndPrice(request.getStartDateTime(), request.getEndDateTime(), request.getBasePrice());
-        normalizeRequired(request.getTitle(), "title is required");
+        normalizeRequired(request.getTitle(), TITLE_REQUIRED_MESSAGE);
         parseCategory(request.getCategory());
         ensureLocationPayload(request.getLocationId(), request.getLocation());
     }
@@ -303,7 +305,7 @@ public class EventService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
         }
         validateDatesAndPrice(request.getStartDateTime(), request.getEndDateTime(), request.getBasePrice());
-        normalizeRequired(request.getTitle(), "title is required");
+        normalizeRequired(request.getTitle(), TITLE_REQUIRED_MESSAGE);
         parseCategory(request.getCategory());
         ensureLocationPayload(request.getLocationId(), request.getLocation());
     }

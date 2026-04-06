@@ -23,7 +23,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -103,7 +102,7 @@ class EventControllerTest {
             jwtService.when(() -> JWTService.getRole("valid-token")).thenReturn("ADMIN");
             jwtService.when(() -> JWTService.getUserId("valid-token")).thenReturn(10L);
 
-            when(eventService.getAdminEvents(eq("SCHEDULED"))).thenReturn(List.of());
+            when(eventService.getAdminEvents("SCHEDULED")).thenReturn(List.of());
 
             ResponseEntity<List<EventResponse>> response = eventController.getAdminEvents(
                     "Bearer valid-token",
@@ -115,6 +114,33 @@ class EventControllerTest {
     }
 
     @Test
+    void getAdminEvents_whenTokenIsInvalid_shouldThrowUnauthorized() {
+        try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
+            jwtService.when(() -> JWTService.validateToken("bad-token")).thenReturn(false);
+
+            ResponseStatusException ex = assertThrows(
+                    ResponseStatusException.class,
+                    () -> eventController.getAdminEvents("Bearer bad-token", "SCHEDULED"));
+
+            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        }
+    }
+
+    @Test
+    void getAdminEvents_whenRoleIsNotAdmin_shouldThrowForbidden() {
+        try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
+            jwtService.when(() -> JWTService.validateToken("valid-token")).thenReturn(true);
+            jwtService.when(() -> JWTService.getRole("valid-token")).thenReturn("USER");
+
+            ResponseStatusException ex = assertThrows(
+                    ResponseStatusException.class,
+                    () -> eventController.getAdminEvents("Bearer valid-token", "SCHEDULED"));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        }
+    }
+
+    @Test
     void createEvent_whenValidAdminToken_shouldCreateEvent() {
         try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
             jwtService.when(() -> JWTService.validateToken("valid-token")).thenReturn(true);
@@ -122,13 +148,27 @@ class EventControllerTest {
             jwtService.when(() -> JWTService.getUserId("valid-token")).thenReturn(10L);
 
             CreateEventRequest request = new CreateEventRequest();
-            when(eventService.createEvent(eq(10L), any(CreateEventRequest.class)))
+            when(eventService.createEvent(10L, request))
                     .thenReturn(org.mockito.Mockito.mock(EventResponse.class));
 
             ResponseEntity<EventResponse> response = eventController.createEvent("Bearer valid-token", request);
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode());
-            verify(eventService).createEvent(eq(10L), any(CreateEventRequest.class));
+            verify(eventService).createEvent(10L, request);
+        }
+    }
+
+    @Test
+    void createEvent_whenRoleIsNotAdmin_shouldThrowForbidden() {
+        try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
+            jwtService.when(() -> JWTService.validateToken("valid-token")).thenReturn(true);
+            jwtService.when(() -> JWTService.getRole("valid-token")).thenReturn("USER");
+
+            ResponseStatusException ex = assertThrows(
+                    ResponseStatusException.class,
+                    () -> eventController.createEvent("Bearer valid-token", new CreateEventRequest()));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         }
     }
 
@@ -140,7 +180,7 @@ class EventControllerTest {
             jwtService.when(() -> JWTService.getUserId("valid-token")).thenReturn(10L);
 
             UpdateEventRequest request = new UpdateEventRequest();
-            when(eventService.updateEvent(eq(10L), eq(99L), any(UpdateEventRequest.class)))
+            when(eventService.updateEvent(10L, 99L, request))
                     .thenReturn(org.mockito.Mockito.mock(EventResponse.class));
 
             ResponseEntity<EventResponse> response = eventController.updateEvent(
@@ -149,7 +189,20 @@ class EventControllerTest {
                     request);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
-            verify(eventService).updateEvent(eq(10L), eq(99L), any(UpdateEventRequest.class));
+            verify(eventService).updateEvent(10L, 99L, request);
+        }
+    }
+
+    @Test
+    void updateEvent_whenTokenIsInvalid_shouldThrowUnauthorized() {
+        try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
+            jwtService.when(() -> JWTService.validateToken("bad-token")).thenReturn(false);
+
+            ResponseStatusException ex = assertThrows(
+                    ResponseStatusException.class,
+                    () -> eventController.updateEvent("Bearer bad-token", 99L, new UpdateEventRequest()));
+
+            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
         }
     }
 
@@ -166,6 +219,20 @@ class EventControllerTest {
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             verify(eventService).cancelEvent(10L, 99L);
+        }
+    }
+
+    @Test
+    void cancelEvent_whenRoleIsNotAdmin_shouldThrowForbidden() {
+        try (MockedStatic<JWTService> jwtService = mockStatic(JWTService.class)) {
+            jwtService.when(() -> JWTService.validateToken("valid-token")).thenReturn(true);
+            jwtService.when(() -> JWTService.getRole("valid-token")).thenReturn("USER");
+
+            ResponseStatusException ex = assertThrows(
+                    ResponseStatusException.class,
+                    () -> eventController.cancelEvent("Bearer valid-token", 99L));
+
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         }
     }
 }

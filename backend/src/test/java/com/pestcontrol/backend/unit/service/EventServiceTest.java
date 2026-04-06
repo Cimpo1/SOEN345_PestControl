@@ -36,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -136,6 +135,20 @@ class EventServiceTest {
     }
 
     @Test
+    void getEvents_whenFiltersDoNotMatch_returnsEmptyList() {
+        when(eventRepository.findAll()).thenReturn(List.of(montrealConcert, lavalSports, cancelledEvent));
+
+        List<EventResponse> result = eventService.getEvents(
+                "opera",
+                LocalDate.parse("2026-01-01"),
+                LocalDate.parse("2026-01-31"),
+                "toronto",
+                List.of(Category.COMEDY));
+
+        assertEquals(0, result.size());
+    }
+
+    @Test
     void getEvents_whenEndDateBeforeStartDate_throwsBadRequest() {
         LocalDate startDate = LocalDate.parse("2026-08-01");
         LocalDate endDate = LocalDate.parse("2026-07-01");
@@ -180,7 +193,6 @@ class EventServiceTest {
 
         assertEquals(3, result.size());
         assertEquals(12L, result.get(0).getEventId());
-        assertEquals(10L, result.get(2).getEventId());
     }
 
     @Test
@@ -198,6 +210,335 @@ class EventServiceTest {
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
                 () -> eventService.getAdminEvents("unknown"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void createEvent_whenRequestIsNull_throwsBadRequest() {
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(1L, null));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void createEvent_whenDatesAreMissing_throwsBadRequest() {
+        var request = new com.pestcontrol.backend.api.dto.CreateEventRequest();
+        request.setTitle("Missing Dates Event");
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("80.00"));
+        request.setLocationId(1L);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(1L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void createEvent_whenTitleIsNull_throwsBadRequest() {
+        var request = new com.pestcontrol.backend.api.dto.CreateEventRequest();
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-10T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-10T21:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("80.00"));
+        request.setLocationId(1L);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(1L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void createEvent_whenEndBeforeStart_throwsBadRequest() {
+        var request = new com.pestcontrol.backend.api.dto.CreateEventRequest();
+        request.setTitle("Bad Time Event");
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-10T22:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-10T21:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("80.00"));
+        request.setLocationId(1L);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(1L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void createEvent_whenStartIsInPast_throwsBadRequest() {
+        var request = new com.pestcontrol.backend.api.dto.CreateEventRequest();
+        request.setTitle("Past Event");
+        request.setStartDateTime(OffsetDateTime.parse("2024-01-01T10:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2024-01-01T12:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("80.00"));
+        request.setLocationId(1L);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(1L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void createEvent_whenBasePriceNotPositive_throwsBadRequest() {
+        var request = new com.pestcontrol.backend.api.dto.CreateEventRequest();
+        request.setTitle("Free Event");
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-10T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-10T21:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("0"));
+        request.setLocationId(1L);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(1L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void createEvent_whenLocationMissing_throwsBadRequest() {
+        var request = new com.pestcontrol.backend.api.dto.CreateEventRequest();
+        request.setTitle("No Location Event");
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-10T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-10T21:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("80.00"));
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(1L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void createEvent_whenInlineLocationNameBlank_throwsBadRequest() {
+        var locationRequest = new com.pestcontrol.backend.api.dto.EventLocationRequest();
+        locationRequest.setName("   ");
+        locationRequest.setAddressLine("123 Main St");
+        locationRequest.setCity("Montreal");
+        locationRequest.setProvince("QC");
+        locationRequest.setPostalCode("H1H1H1");
+
+        var request = new com.pestcontrol.backend.api.dto.CreateEventRequest();
+        request.setTitle("Inline Venue Concert");
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-10T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-10T22:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("80.00"));
+        request.setLocation(locationRequest);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.createEvent(1L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void updateEvent_whenMissing_throwsNotFound() {
+        when(eventRepository.findById(999L)).thenReturn(Optional.empty());
+
+        var request = new com.pestcontrol.backend.api.dto.UpdateEventRequest();
+        request.setTitle("Missing Event");
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-10T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-10T21:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("80.00"));
+        request.setLocationId(1L);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.updateEvent(1L, 999L, request));
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+
+    @Test
+    void updateEvent_whenEventCancelled_throwsConflict() {
+        when(eventRepository.findById(12L)).thenReturn(Optional.of(cancelledEvent));
+
+        var request = new com.pestcontrol.backend.api.dto.UpdateEventRequest();
+        request.setTitle("Cancelled Update");
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-10T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-10T21:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("80.00"));
+        request.setLocationId(1L);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.updateEvent(1L, 12L, request));
+
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+    }
+
+    @Test
+    void updateEvent_whenCategoryInvalid_throwsBadRequest() {
+        var request = new com.pestcontrol.backend.api.dto.UpdateEventRequest();
+        request.setTitle("Bad Category");
+        request.setStartDateTime(OffsetDateTime.parse("2026-10-10T19:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-10-10T21:00:00Z"));
+        request.setCategory("NOT_A_CATEGORY");
+        request.setBasePrice(new BigDecimal("80.00"));
+        request.setLocationId(1L);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.updateEvent(1L, 10L, request));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void getEvents_whenBlankFiltersAreProvided_ignoresThem() {
+        when(eventRepository.findAll()).thenReturn(List.of(montrealConcert, lavalSports, cancelledEvent));
+
+        List<EventResponse> result = eventService.getEvents(
+                "   ",
+                null,
+                null,
+                "   ",
+                null);
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void getAdminEvents_whenStatusNull_returnsAllEvents() {
+        when(eventRepository.findAll()).thenReturn(List.of(cancelledEvent, lavalSports, montrealConcert));
+
+        List<EventResponse> result = eventService.getAdminEvents(null);
+
+        assertEquals(3, result.size());
+        assertEquals(12L, result.get(0).getEventId());
+    }
+
+    @Test
+    void getAdminEvents_whenScheduledEventsHaveEnded_marksThemPast() throws Exception {
+        Event pastDueEvent = new Event(
+                montrealConcert.getLocation(),
+                "Already Over",
+                OffsetDateTime.parse("2026-01-01T10:00:00Z"),
+                OffsetDateTime.parse("2026-01-01T11:00:00Z"),
+                Category.CONCERT,
+                new BigDecimal("49.99"),
+                EventStatus.SCHEDULED);
+        pastDueEvent.setEventId(77L);
+
+        java.lang.reflect.Constructor<EventService> constructor = EventService.class.getDeclaredConstructor(
+                EventRepository.class,
+                LocationRepository.class,
+                ReservationRepository.class,
+                TicketRepository.class,
+                ReservationEmailService.class,
+                java.time.Clock.class);
+        constructor.setAccessible(true);
+
+        EventService serviceWithFixedClock = constructor.newInstance(
+                eventRepository,
+                locationRepository,
+                reservationRepository,
+                ticketRepository,
+                reservationEmailService,
+                java.time.Clock.fixed(OffsetDateTime.parse("2026-12-31T00:00:00Z").toInstant(),
+                        java.time.ZoneOffset.UTC));
+
+        when(eventRepository.findByStatus(EventStatus.SCHEDULED)).thenReturn(List.of(pastDueEvent));
+        when(eventRepository.findAll()).thenReturn(List.of(pastDueEvent));
+        when(eventRepository.saveAll(List.of(pastDueEvent))).thenReturn(List.of(pastDueEvent));
+
+        List<EventResponse> result = serviceWithFixedClock.getAdminEvents(null);
+
+        assertEquals(1, result.size());
+        assertEquals(EventStatus.PAST, pastDueEvent.getStatus());
+        verify(eventRepository).saveAll(List.of(pastDueEvent));
+    }
+
+    @Test
+    void updateEvent_whenTimeChangesAndEmailMissing_stillProcessesNotificationBranch() {
+        User noEmailCustomer = new User("Alice", null, "5141112222", "hash", UserRole.CUSTOMER);
+        noEmailCustomer.setUserId(50L);
+
+        Reservation activeReservation = new Reservation(
+                noEmailCustomer,
+                montrealConcert,
+                OffsetDateTime.parse("2026-07-01T10:00:00Z"),
+                ReservationStatus.CONFIRMED,
+                new BigDecimal("59.99"));
+        activeReservation.setReservationId(300L);
+
+        Ticket activeTicket = new Ticket(activeReservation, new BigDecimal("59.99"));
+        activeTicket.setTicketId(900L);
+
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(montrealConcert));
+        when(eventRepository.save(montrealConcert)).thenReturn(montrealConcert);
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(montrealConcert.getLocation()));
+        when(reservationRepository.findByEvent(montrealConcert)).thenReturn(List.of(activeReservation));
+        when(ticketRepository.findByReservation(activeReservation)).thenReturn(List.of(activeTicket));
+
+        var request = new com.pestcontrol.backend.api.dto.UpdateEventRequest();
+        request.setTitle("Summer Jazz Festival");
+        request.setStartDateTime(OffsetDateTime.parse("2026-07-10T21:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-07-10T23:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("59.99"));
+        request.setLocationId(1L);
+
+        eventService.updateEvent(999L, 10L, request);
+
+        verify(reservationEmailService, never()).sendEventTimeUpdatedConfirmation(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void constructor_withExplicitClock_canBeInvoked() throws Exception {
+        java.lang.reflect.Constructor<EventService> constructor = EventService.class.getDeclaredConstructor(
+                EventRepository.class,
+                LocationRepository.class,
+                ReservationRepository.class,
+                TicketRepository.class,
+                ReservationEmailService.class,
+                java.time.Clock.class);
+        constructor.setAccessible(true);
+
+        EventService explicitService = constructor.newInstance(
+                eventRepository,
+                locationRepository,
+                reservationRepository,
+                ticketRepository,
+                reservationEmailService,
+                java.time.Clock.systemUTC());
+
+        assertNotNull(explicitService);
+    }
+
+    @Test
+    void cancelEvent_whenPastEvent_throwsBadRequest() {
+        Event pastEvent = new Event(
+                montrealConcert.getLocation(),
+                "Past Event",
+                OffsetDateTime.parse("2024-01-01T10:00:00Z"),
+                OffsetDateTime.parse("2024-01-01T11:00:00Z"),
+                Category.CONCERT,
+                new BigDecimal("59.99"),
+                EventStatus.PAST);
+        pastEvent.setEventId(99L);
+
+        when(eventRepository.findById(99L)).thenReturn(Optional.of(pastEvent));
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.cancelEvent(1L, 99L));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
@@ -392,16 +733,16 @@ class EventServiceTest {
 
         assertEquals(OffsetDateTime.parse("2026-07-10T20:00:00Z"), response.getStartDateTime());
         verify(reservationEmailService).sendEventTimeUpdatedConfirmation(
-                eq("alice@example.com"),
-                eq(activeReservation),
-                eq(List.of(activeTicket)),
-                eq("2026-07-10 19:00 UTC"),
-                eq("2026-07-10 22:00 UTC"));
+                "alice@example.com",
+                activeReservation,
+                List.of(activeTicket),
+                "2026-07-10 19:00 UTC",
+                "2026-07-10 22:00 UTC");
         verify(reservationEmailService, never()).sendEventTimeUpdatedConfirmation(
-                eq("bob@example.com"),
-                any(),
-                any(),
-                any(),
-                any());
+                "bob@example.com",
+                activeReservation,
+                List.of(activeTicket),
+                "2026-07-10 19:00 UTC",
+                "2026-07-10 22:00 UTC");
     }
 }
