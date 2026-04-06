@@ -47,6 +47,29 @@ public class ReservationEmailService {
         sendEmail(email, "Reservation Cancelled", body);
     }
 
+    public void sendEventCancellationConfirmation(String email, Reservation reservation, List<Ticket> tickets) {
+        if (email == null || email.isBlank()) {
+            return;
+        }
+
+        String body = buildEventCancellationBody(reservation, tickets);
+        sendEmail(email, "Event Cancelled", body);
+    }
+
+    public void sendEventTimeUpdatedConfirmation(
+            String email,
+            Reservation reservation,
+            List<Ticket> tickets,
+            String oldStartTime,
+            String oldEndTime) {
+        if (email == null || email.isBlank()) {
+            return;
+        }
+
+        String body = buildEventTimeUpdatedBody(reservation, tickets, oldStartTime, oldEndTime);
+        sendEmail(email, "Event Time Updated", body);
+    }
+
     private void sendEmail(String to, String subject, String body) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -104,6 +127,54 @@ public class ReservationEmailService {
             builder.append("- Ticket ID: ").append(ticket.getTicketId())
                     .append(" | Price: ").append(ticket.getPrice())
                     .append(" | Status: ").append(status)
+                    .append("\n");
+        }
+
+        return builder.toString();
+    }
+
+    private String buildEventCancellationBody(Reservation reservation, List<Ticket> tickets) {
+        StringBuilder builder = new StringBuilder();
+        Event event = reservation.getEvent();
+
+        builder.append("An event you registered for was cancelled by the administrator.\n\n")
+                .append("Reservation ID: ").append(reservation.getReservationId()).append("\n")
+                .append("Event: ").append(event.getTitle()).append("\n")
+                .append("Start: ").append(event.getStartDateTime().format(DATE_TIME_FORMATTER)).append("\n")
+                .append("End: ").append(event.getEndDateTime().format(DATE_TIME_FORMATTER)).append("\n")
+                .append("\nInvalidated Ticket Information:\n");
+
+        for (Ticket ticket : tickets) {
+            builder.append("- Ticket ID: ").append(ticket.getTicketId())
+                    .append(" | Price: ").append(ticket.getPrice())
+                    .append(" | Status: ").append(ticket.getStatus())
+                    .append("\n");
+        }
+
+        return builder.toString();
+    }
+
+    private String buildEventTimeUpdatedBody(
+            Reservation reservation,
+            List<Ticket> tickets,
+            String oldStartTime,
+            String oldEndTime) {
+        StringBuilder builder = new StringBuilder();
+        Event event = reservation.getEvent();
+
+        builder.append("The time of an event you registered for has been updated by the administrator.\n\n")
+                .append("Reservation ID: ").append(reservation.getReservationId()).append("\n")
+                .append("Event: ").append(event.getTitle()).append("\n")
+                .append("Previous Start: ").append(oldStartTime).append("\n")
+                .append("Previous End: ").append(oldEndTime).append("\n")
+                .append("New Start: ").append(event.getStartDateTime().format(DATE_TIME_FORMATTER)).append("\n")
+                .append("New End: ").append(event.getEndDateTime().format(DATE_TIME_FORMATTER)).append("\n")
+                .append("\nTicket Information:\n");
+
+        for (Ticket ticket : tickets) {
+            builder.append("- Ticket ID: ").append(ticket.getTicketId())
+                    .append(" | Price: ").append(ticket.getPrice())
+                    .append(" | Status: ").append(ticket.getStatus())
                     .append("\n");
         }
 

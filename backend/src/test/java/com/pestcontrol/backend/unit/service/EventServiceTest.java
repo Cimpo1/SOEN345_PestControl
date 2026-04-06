@@ -3,10 +3,20 @@ package com.pestcontrol.backend.unit.service;
 import com.pestcontrol.backend.api.dto.EventResponse;
 import com.pestcontrol.backend.domain.Event;
 import com.pestcontrol.backend.domain.Location;
+import com.pestcontrol.backend.domain.Reservation;
+import com.pestcontrol.backend.domain.Ticket;
+import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.Category;
 import com.pestcontrol.backend.domain.enums.EventStatus;
+import com.pestcontrol.backend.domain.enums.ReservationStatus;
+import com.pestcontrol.backend.domain.enums.TicketStatus;
+import com.pestcontrol.backend.domain.enums.UserRole;
 import com.pestcontrol.backend.infrastructure.repositories.EventRepository;
+import com.pestcontrol.backend.infrastructure.repositories.LocationRepository;
+import com.pestcontrol.backend.infrastructure.repositories.ReservationRepository;
+import com.pestcontrol.backend.infrastructure.repositories.TicketRepository;
 import com.pestcontrol.backend.service.EventService;
+import com.pestcontrol.backend.service.ReservationEmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +34,11 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +46,18 @@ class EventServiceTest {
 
     @Mock
     private EventRepository eventRepository;
+
+    @Mock
+    private LocationRepository locationRepository;
+
+    @Mock
+    private ReservationRepository reservationRepository;
+
+    @Mock
+    private TicketRepository ticketRepository;
+
+    @Mock
+    private ReservationEmailService reservationEmailService;
 
     @InjectMocks
     private EventService eventService;
@@ -41,6 +68,8 @@ class EventServiceTest {
 
     @BeforeEach
     void setUp() {
+        when(eventRepository.findByStatus(EventStatus.SCHEDULED)).thenReturn(List.of());
+
         Location montreal = new Location("Bell Centre", "1 Arena Way", "Montreal", "QC", "H1A1A1");
         montreal.setLocationId(1L);
 
@@ -139,5 +168,127 @@ class EventServiceTest {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> eventService.getEventById(999L));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+
+    @Test
+    void cancelEvent_whenScheduled_cascadesReservationAndTicketUpdatesAndSendsEmails() {
+        User customerWithEmail = new User("Alice", "alice@example.com", "5141112222", "hash", UserRole.CUSTOMER);
+        customerWithEmail.setUserId(50L);
+        User customerWithoutEmail = new User("Bob", null, "5143334444", "hash", UserRole.CUSTOMER);
+        customerWithoutEmail.setUserId(51L);
+
+        Reservation confirmedReservation = new Reservation(
+                customerWithEmail,
+                montrealConcert,
+                OffsetDateTime.parse("2026-07-01T10:00:00Z"),
+                ReservationStatus.CONFIRMED,
+                new BigDecimal("59.99"));
+        confirmedReservation.setReservationId(300L);
+
+        Reservation alreadyCancelledReservation = new Reservation(
+                customerWithoutEmail,
+                montrealConcert,
+                OffsetDateTime.parse("2026-07-01T11:00:00Z"),
+                ReservationStatus.CANCELLED,
+                new BigDecimal("39.99"));
+        alreadyCancelledReservation.setReservationId(301L);
+
+        Ticket ticketOne = new Ticket(confirmedReservation, new BigDecimal("59.99"));
+        ticketOne.setTicketId(1L);
+        Ticket ticketTwo = new Ticket(alreadyCancelledReservation, new BigDecimal("39.99"));
+        ticketTwo.setTicketId(2L);
+
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(montrealConcert));
+        when(eventRepository.save(montrealConcert)).thenReturn(montrealConcert);
+        when(reservationRepository.findByEvent(montrealConcert))
+                .thenReturn(List.of(confirmedReservation, alreadyCancelledReservation));
+        when(ticketRepository.findByReservation(confirmedReservation)).thenReturn(List.of(ticketOne));
+        when(ticketRepository.findByReservation(alreadyCancelledReservation)).thenReturn(List.of(ticketTwo));
+
+        EventResponse response = eventService.cancelEvent(999L, 10L);
+
+        assertEquals(EventStatus.CANCELLED, montrealConcert.getStatus());
+        assertEquals(EventStatus.CANCELLED, response.getStatus());
+        assertEquals(ReservationStatus.CANCELLED, confirmedReservation.getStatus());
+        assertEquals(TicketStatus.VOIDED, ticketOne.getStatus());
+        assertEquals(TicketStatus.VOIDED, ticketTwo.getStatus());
+
+        verify(eventRepository).save(montrealConcert);
+        verify(reservationRepository).save(confirmedReservation);
+        verify(reservationRepository, never()).save(alreadyCancelledReservation);
+        verify(ticketRepository).saveAll(List.of(ticketOne));
+        verify(ticketRepository).saveAll(List.of(ticketTwo));
+        verify(reservationEmailService).sendEventCancellationConfirmation("alice@example.com", confirmedReservation,
+                List.of(ticketOne));
+        verify(reservationEmailService, times(1)).sendEventCancellationConfirmation(any(), any(), any());
+    }
+
+    @Test
+    void cancelEvent_whenEventAlreadyCancelled_throwsConflict() {
+        when(eventRepository.findById(12L)).thenReturn(Optional.of(cancelledEvent));
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> eventService.cancelEvent(999L, 12L));
+
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+    }
+
+    @Test
+    void updateEvent_whenTimeChanges_notifiesActiveReservationsOnly() {
+        User activeCustomer = new User("Alice", "alice@example.com", "5141112222", "hash", UserRole.CUSTOMER);
+        activeCustomer.setUserId(50L);
+        User cancelledCustomer = new User("Bob", "bob@example.com", "5143334444", "hash", UserRole.CUSTOMER);
+        cancelledCustomer.setUserId(51L);
+
+        Reservation activeReservation = new Reservation(
+                activeCustomer,
+                montrealConcert,
+                OffsetDateTime.parse("2026-07-01T10:00:00Z"),
+                ReservationStatus.CONFIRMED,
+                new BigDecimal("59.99"));
+        activeReservation.setReservationId(300L);
+
+        Reservation cancelledReservation = new Reservation(
+                cancelledCustomer,
+                montrealConcert,
+                OffsetDateTime.parse("2026-07-01T11:00:00Z"),
+                ReservationStatus.CANCELLED,
+                new BigDecimal("59.99"));
+        cancelledReservation.setReservationId(301L);
+
+        Ticket activeTicket = new Ticket(activeReservation, new BigDecimal("59.99"));
+        activeTicket.setTicketId(900L);
+
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(montrealConcert));
+        when(eventRepository.save(montrealConcert)).thenReturn(montrealConcert);
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(montrealConcert.getLocation()));
+        when(reservationRepository.findByEvent(montrealConcert))
+                .thenReturn(List.of(activeReservation, cancelledReservation));
+        when(ticketRepository.findByReservation(activeReservation)).thenReturn(List.of(activeTicket));
+
+        var request = new com.pestcontrol.backend.api.dto.UpdateEventRequest();
+        request.setTitle("Summer Jazz Festival");
+        request.setStartDateTime(OffsetDateTime.parse("2026-07-10T20:00:00Z"));
+        request.setEndDateTime(OffsetDateTime.parse("2026-07-10T23:00:00Z"));
+        request.setCategory("CONCERT");
+        request.setBasePrice(new BigDecimal("59.99"));
+        request.setLocationId(1L);
+
+        EventResponse response = eventService.updateEvent(999L, 10L, request);
+
+        assertEquals(OffsetDateTime.parse("2026-07-10T20:00:00Z"), response.getStartDateTime());
+        verify(reservationEmailService).sendEventTimeUpdatedConfirmation(
+                eq("alice@example.com"),
+                eq(activeReservation),
+                eq(List.of(activeTicket)),
+                eq("2026-07-10 19:00 UTC"),
+                eq("2026-07-10 22:00 UTC"));
+        verify(reservationEmailService, never()).sendEventTimeUpdatedConfirmation(
+                eq("bob@example.com"),
+                any(),
+                any(),
+                any(),
+                any());
     }
 }
