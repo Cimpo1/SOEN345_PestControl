@@ -46,8 +46,29 @@ function formatCategoryLabel(category: string) {
   return category.replace(/_/g, " ");
 }
 
-function isIsoDate(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
+function parseDateInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return new Date(`${trimmed}T00:00:00`);
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function toIsoDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export default function MyEventsScreen({ navigation }: Props) {
@@ -76,6 +97,7 @@ export default function MyEventsScreen({ navigation }: Props) {
   );
   const [filterError, setFilterError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(true);
+  const localeDateExample = useMemo(() => new Date().toLocaleDateString(), []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -178,20 +200,28 @@ export default function MyEventsScreen({ navigation }: Props) {
     const start = startDateInput.trim();
     const end = endDateInput.trim();
     const location = locationInput.trim();
+    const parsedStart = start ? parseDateInput(start) : null;
+    const parsedEnd = end ? parseDateInput(end) : null;
 
-    if (start && !isIsoDate(start)) {
-      setFilterError("Start date must use YYYY-MM-DD.");
+    if (start && !parsedStart) {
+      setFilterError(
+        `Invalid start date. Use format like ${localeDateExample}.`,
+      );
       return;
     }
-    if (end && !isIsoDate(end)) {
-      setFilterError("End date must use YYYY-MM-DD.");
+    if (end && !parsedEnd) {
+      setFilterError(`Invalid end date. Use format like ${localeDateExample}.`);
+      return;
+    }
+    if (parsedStart && parsedEnd && parsedEnd < parsedStart) {
+      setFilterError("End date cannot be before start date.");
       return;
     }
 
     setAppliedFilters({
       location,
-      startDate: start,
-      endDate: end,
+      startDate: parsedStart ? toIsoDate(parsedStart) : "",
+      endDate: parsedEnd ? toIsoDate(parsedEnd) : "",
       categories: selectedCategories,
       statuses: selectedStatuses,
     });
@@ -233,6 +263,8 @@ export default function MyEventsScreen({ navigation }: Props) {
               onStartDateChange={setStartDateInput}
               endDateValue={endDateInput}
               onEndDateChange={setEndDateInput}
+              startDatePlaceholder={`Start date (e.g. ${localeDateExample})`}
+              endDatePlaceholder={`End date (e.g. ${localeDateExample})`}
               categoryOptions={CATEGORY_OPTIONS}
               selectedCategories={selectedCategories}
               onToggleCategory={onToggleCategory}
