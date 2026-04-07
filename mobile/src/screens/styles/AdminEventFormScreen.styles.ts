@@ -31,6 +31,18 @@ export const styles = StyleSheet.create({
         backgroundColor: "#fffdf8",
         color: "#2f2b27",
     },
+    dateTimeValueBox: {
+        borderWidth: 1,
+        borderColor: "#d8d3c7",
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        backgroundColor: "#fffdf8",
+    },
+    dateTimeValueText: {
+        color: "#2f2b27",
+        fontSize: 14,
+    },
     categoriesWrap: {
         flexDirection: "row",
         flexWrap: "wrap",
@@ -118,5 +130,33 @@ export const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#f5f4f0",
+    },
+    pickerModalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+        justifyContent: "center",
+        paddingHorizontal: 20,
+    },
+    pickerModalCard: {
+        backgroundColor: "#fffdf8",
+        borderRadius: 14,
+        paddingHorizontal: 12,
+        paddingTop: 14,
+        paddingBottom: 12,
+        borderWidth: 1,
+        borderColor: "#e2dbcf",
+    },
+    pickerModalTitle: {
+        fontSize: 16,
+        fontWeight: "800",
+        color: "#2f2b27",
+        marginBottom: 4,
+        textAlign: "center",
+    },
+    pickerModalActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: 8,
+        marginTop: 4,
     },
 });

@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
@@ -32,8 +37,54 @@ const CATEGORY_OPTIONS = [
   "FAMILY",
 ] as const;
 
-function toInputDateText(value: string) {
-  return value;
+type PickerTarget = {
+  field: "start" | "end";
+  mode: "date" | "time";
+};
+
+function parseApiDate(value: string) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatSelectedDateTime(value: Date | null) {
+  if (!value) {
+    return "Not selected";
+  }
+  return value.toLocaleString();
+}
+
+function toOffsetDateTimeString(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  const hours = String(value.getHours()).padStart(2, "0");
+  const minutes = String(value.getMinutes()).padStart(2, "0");
+  const seconds = String(value.getSeconds()).padStart(2, "0");
+
+  const offsetMinutes = -value.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absoluteOffset = Math.abs(offsetMinutes);
+  const offsetHours = String(Math.floor(absoluteOffset / 60)).padStart(2, "0");
+  const remainingOffsetMinutes = String(absoluteOffset % 60).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${remainingOffsetMinutes}`;
+}
+
+function withUpdatedDatePart(base: Date, picked: Date) {
+  const updated = new Date(base);
+  updated.setFullYear(
+    picked.getFullYear(),
+    picked.getMonth(),
+    picked.getDate(),
+  );
+  return updated;
+}
+
+function withUpdatedTimePart(base: Date, picked: Date) {
+  const updated = new Date(base);
+  updated.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
+  return updated;
 }
 
 export default function AdminEventFormScreen({ navigation, route }: Props) {
@@ -46,8 +97,10 @@ export default function AdminEventFormScreen({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
-  const [startDateTime, setStartDateTime] = useState("");
-  const [endDateTime, setEndDateTime] = useState("");
+  const [startDateTime, setStartDateTime] = useState<Date | null>(null);
+  const [endDateTime, setEndDateTime] = useState<Date | null>(null);
+  const [activePicker, setActivePicker] = useState<PickerTarget | null>(null);
+  const [pickerDraftDate, setPickerDraftDate] = useState<Date>(new Date());
   const [category, setCategory] = useState<string>("CONCERT");
   const [basePrice, setBasePrice] = useState("");
 
@@ -85,8 +138,8 @@ export default function AdminEventFormScreen({ navigation, route }: Props) {
 
       const event = result.data;
       setTitle(event.title);
-      setStartDateTime(toInputDateText(event.startDateTime));
-      setEndDateTime(toInputDateText(event.endDateTime));
+      setStartDateTime(parseApiDate(event.startDateTime));
+      setEndDateTime(parseApiDate(event.endDateTime));
       setCategory(event.category);
       setBasePrice(String(event.basePrice));
       setLocationMode("existing");
@@ -166,6 +219,67 @@ export default function AdminEventFormScreen({ navigation, route }: Props) {
     };
   };
 
+  const onOpenPicker = (field: "start" | "end", mode: "date" | "time") => {
+    const currentValue = field === "start" ? startDateTime : endDateTime;
+    setPickerDraftDate(currentValue ?? new Date());
+    setActivePicker({ field, mode });
+  };
+
+  const onPickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    if (!activePicker) {
+      return;
+    }
+
+    if (event.type === "dismissed" || !selected) {
+      setActivePicker(null);
+      return;
+    }
+
+    setPickerDraftDate(selected);
+
+    if (Platform.OS === "ios") {
+      return;
+    }
+
+    const currentValue =
+      activePicker.field === "start" ? startDateTime : endDateTime;
+    const baseValue = currentValue ?? new Date();
+    const nextValue =
+      activePicker.mode === "date"
+        ? withUpdatedDatePart(baseValue, selected)
+        : withUpdatedTimePart(baseValue, selected);
+
+    if (activePicker.field === "start") {
+      setStartDateTime(nextValue);
+    } else {
+      setEndDateTime(nextValue);
+    }
+
+    setActivePicker(null);
+  };
+
+  const onConfirmPicker = () => {
+    if (!activePicker) {
+      return;
+    }
+
+    const currentValue =
+      activePicker.field === "start" ? startDateTime : endDateTime;
+    const baseValue = currentValue ?? new Date();
+    const nextValue =
+      activePicker.mode === "date"
+        ? withUpdatedDatePart(baseValue, pickerDraftDate)
+        : withUpdatedTimePart(baseValue, pickerDraftDate);
+
+    if (activePicker.field === "start") {
+      setStartDateTime(nextValue);
+    } else {
+      setEndDateTime(nextValue);
+    }
+
+    setActivePicker(null);
+  };
+
   const onSubmit = async () => {
     if (!token) {
       setError("Authentication required.");
@@ -180,8 +294,13 @@ export default function AdminEventFormScreen({ navigation, route }: Props) {
       return;
     }
 
-    if (!startDateTime.trim() || !endDateTime.trim()) {
+    if (!startDateTime || !endDateTime) {
       setError("Start and end date/time are required.");
+      return;
+    }
+
+    if (endDateTime.getTime() <= startDateTime.getTime()) {
+      setError("End date/time must be after start date/time.");
       return;
     }
 
@@ -197,8 +316,8 @@ export default function AdminEventFormScreen({ navigation, route }: Props) {
 
     const payload: UpsertEventPayload = {
       title: title.trim(),
-      startDateTime: startDateTime.trim(),
-      endDateTime: endDateTime.trim(),
+      startDateTime: toOffsetDateTimeString(startDateTime),
+      endDateTime: toOffsetDateTimeString(endDateTime),
       category,
       basePrice: parsedPrice,
       ...locationPayload,
@@ -257,25 +376,47 @@ export default function AdminEventFormScreen({ navigation, route }: Props) {
           placeholderTextColor="#8a8177"
         />
 
-        <Text style={styles.label}>Start DateTime (ISO)</Text>
-        <TextInput
-          style={styles.input}
-          value={startDateTime}
-          onChangeText={setStartDateTime}
-          placeholder="2026-07-01T19:00:00Z"
-          placeholderTextColor="#8a8177"
-          autoCapitalize="none"
-        />
+        <Text style={styles.label}>Start Date & Time</Text>
+        <View style={styles.dateTimeValueBox}>
+          <Text style={styles.dateTimeValueText}>
+            {formatSelectedDateTime(startDateTime)}
+          </Text>
+        </View>
+        <View style={styles.actionsRow}>
+          <Pressable
+            style={styles.modeButton}
+            onPress={() => onOpenPicker("start", "date")}
+          >
+            <Text style={styles.modeButtonText}>Pick Start Date</Text>
+          </Pressable>
+          <Pressable
+            style={styles.modeButton}
+            onPress={() => onOpenPicker("start", "time")}
+          >
+            <Text style={styles.modeButtonText}>Pick Start Time</Text>
+          </Pressable>
+        </View>
 
-        <Text style={styles.label}>End DateTime (ISO)</Text>
-        <TextInput
-          style={styles.input}
-          value={endDateTime}
-          onChangeText={setEndDateTime}
-          placeholder="2026-07-01T22:00:00Z"
-          placeholderTextColor="#8a8177"
-          autoCapitalize="none"
-        />
+        <Text style={styles.label}>End Date & Time</Text>
+        <View style={styles.dateTimeValueBox}>
+          <Text style={styles.dateTimeValueText}>
+            {formatSelectedDateTime(endDateTime)}
+          </Text>
+        </View>
+        <View style={styles.actionsRow}>
+          <Pressable
+            style={styles.modeButton}
+            onPress={() => onOpenPicker("end", "date")}
+          >
+            <Text style={styles.modeButtonText}>Pick End Date</Text>
+          </Pressable>
+          <Pressable
+            style={styles.modeButton}
+            onPress={() => onOpenPicker("end", "time")}
+          >
+            <Text style={styles.modeButtonText}>Pick End Time</Text>
+          </Pressable>
+        </View>
 
         <Text style={styles.label}>Category</Text>
         <View style={styles.categoriesWrap}>{categoryChips}</View>
@@ -407,6 +548,57 @@ export default function AdminEventFormScreen({ navigation, route }: Props) {
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </Pressable>
         </View>
+
+        <Modal
+          visible={!!activePicker && Platform.OS === "ios"}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setActivePicker(null)}
+        >
+          <View style={styles.pickerModalBackdrop}>
+            <View style={styles.pickerModalCard}>
+              <Text style={styles.pickerModalTitle}>
+                {activePicker?.field === "start" ? "Start" : "End"}{" "}
+                {activePicker?.mode === "date" ? "Date" : "Time"}
+              </Text>
+
+              {activePicker && (
+                <DateTimePicker
+                  value={pickerDraftDate}
+                  mode={activePicker.mode}
+                  is24Hour={false}
+                  display="spinner"
+                  onChange={onPickerChange}
+                />
+              )}
+
+              <View style={styles.pickerModalActions}>
+                <Pressable
+                  style={styles.cancelButton}
+                  onPress={() => setActivePicker(null)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.submitButton}
+                  onPress={onConfirmPicker}
+                >
+                  <Text style={styles.submitButtonText}>Done</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {activePicker && Platform.OS !== "ios" && (
+          <DateTimePicker
+            value={pickerDraftDate}
+            mode={activePicker.mode}
+            is24Hour={false}
+            display="default"
+            onChange={onPickerChange}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
