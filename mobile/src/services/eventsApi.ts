@@ -42,6 +42,28 @@ export interface EventFilters {
   categories?: string[];
 }
 
+export interface AdminEventFilters {
+  status?: "SCHEDULED" | "PAST" | "CANCELLED";
+}
+
+export interface EventLocationInput {
+  name: string;
+  addressLine: string;
+  city: string;
+  province: string;
+  postalCode: string;
+}
+
+export interface UpsertEventPayload {
+  title: string;
+  startDateTime: string;
+  endDateTime: string;
+  category: string;
+  basePrice: number;
+  locationId?: number;
+  location?: EventLocationInput;
+}
+
 function getBaseUrl() {
   const backendIp = process.env.EXPO_PUBLIC_BACKEND_IP;
   return backendIp ? `http://${backendIp}:8080` : "http://localhost:8080";
@@ -64,6 +86,16 @@ function buildEventsQuery(filters: EventFilters) {
   }
   if (filters.categories && filters.categories.length > 0) {
     params.set("categories", filters.categories.join(","));
+  }
+
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+function buildAdminEventsQuery(filters: AdminEventFilters) {
+  const params = new URLSearchParams();
+  if (filters.status) {
+    params.set("status", filters.status);
   }
 
   const query = params.toString();
@@ -127,6 +159,131 @@ function authHeaders(token: string) {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
   };
+}
+
+export async function fetchAdminEvents(
+  token: string,
+  filters: AdminEventFilters = {},
+): Promise<ApiResponse<EventItem[]>> {
+  try {
+    const response = await fetch(
+      `${getBaseUrl()}/events/admin${buildAdminEventsQuery(filters)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+
+    if (response.ok) {
+      const data = (await response.json()) as EventItem[];
+      return { ok: true, status: response.status, data };
+    }
+
+    const rawError = await response.text();
+    return {
+      ok: false,
+      status: response.status,
+      error: rawError || "Failed to load admin events.",
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      error: "Network error. Check server connection and try again.",
+    };
+  }
+}
+
+export async function createEvent(
+  token: string,
+  payload: UpsertEventPayload,
+): Promise<ApiResponse<EventItem>> {
+  try {
+    const response = await fetch(`${getBaseUrl()}/events/admin`, {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as EventItem;
+      return { ok: true, status: response.status, data };
+    }
+
+    const rawError = await response.text();
+    return {
+      ok: false,
+      status: response.status,
+      error: rawError || "Failed to create event.",
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      error: "Network error. Check server connection and try again.",
+    };
+  }
+}
+
+export async function updateEvent(
+  token: string,
+  eventId: number,
+  payload: UpsertEventPayload,
+): Promise<ApiResponse<EventItem>> {
+  try {
+    const response = await fetch(`${getBaseUrl()}/events/admin/${eventId}`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as EventItem;
+      return { ok: true, status: response.status, data };
+    }
+
+    const rawError = await response.text();
+    return {
+      ok: false,
+      status: response.status,
+      error: rawError || "Failed to update event.",
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      error: "Network error. Check server connection and try again.",
+    };
+  }
+}
+
+export async function cancelEvent(
+  token: string,
+  eventId: number,
+): Promise<ApiResponse<EventItem>> {
+  try {
+    const response = await fetch(`${getBaseUrl()}/events/admin/${eventId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as EventItem;
+      return { ok: true, status: response.status, data };
+    }
+
+    const rawError = await response.text();
+    return {
+      ok: false,
+      status: response.status,
+      error: rawError || "Failed to cancel event.",
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      error: "Network error. Check server connection and try again.",
+    };
+  }
 }
 
 export async function reserveEvent(
