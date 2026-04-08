@@ -47,10 +47,10 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         validRegisterRequest = new RegisterRequest();
-        validRegisterRequest.fullName = "John Doe";
-        validRegisterRequest.email = "john@example.com";
-        validRegisterRequest.phoneNumber = "1234567890";
-        validRegisterRequest.password = "securePassword123";
+        validRegisterRequest.setFullName("John Doe");
+        validRegisterRequest.setEmail("john@example.com");
+        validRegisterRequest.setPhoneNumber("1234567890");
+        validRegisterRequest.setPassword("securePassword123");
 
         mockUser = new User();
         mockUser.setFullName("John Doe");
@@ -64,16 +64,16 @@ class AuthServiceTest {
     @DisplayName("Should successfully register user with email and phone")
     void testRegisterSuccessWithEmailAndPhone() {
         // Arrange
-        when(userRepository.existsByEmail(validRegisterRequest.email)).thenReturn(false);
-        when(userRepository.existsByPhoneNumber(validRegisterRequest.phoneNumber)).thenReturn(false);
-        when(passwordEncoder.encode(validRegisterRequest.password)).thenReturn("encodedPassword");
+        when(userRepository.existsByEmail(validRegisterRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByPhoneNumber(validRegisterRequest.getPhoneNumber())).thenReturn(false);
+        when(passwordEncoder.encode(validRegisterRequest.getPassword())).thenReturn("encodedPassword");
 
         // Act
         authService.register(validRegisterRequest);
 
         // Assert
         verify(userRepository, times(1)).save(any(User.class));
-        verify(passwordEncoder, times(1)).encode(validRegisterRequest.password);
+        verify(passwordEncoder, times(1)).encode(validRegisterRequest.getPassword());
     }
 
     @Test
@@ -81,13 +81,13 @@ class AuthServiceTest {
     void testRegisterSuccessWithEmailOnly() {
         // Arrange
         RegisterRequest request = new RegisterRequest();
-        request.fullName = "Jane Doe";
-        request.email = "jane@example.com";
-        request.phoneNumber = null;
-        request.password = "securePassword123";
+        request.setFullName("Jane Doe");
+        request.setEmail("jane@example.com");
+        request.setPhoneNumber(null);
+        request.setPassword("securePassword123");
 
-        when(userRepository.existsByEmail(request.email)).thenReturn(false);
-        when(passwordEncoder.encode(request.password)).thenReturn("encodedPassword");
+        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
 
         // Act
         authService.register(request);
@@ -101,13 +101,13 @@ class AuthServiceTest {
     void testRegisterSuccessWithPhoneOnly() {
         // Arrange
         RegisterRequest request = new RegisterRequest();
-        request.fullName = "Bob Smith";
-        request.email = null;
-        request.phoneNumber = "9876543210";
-        request.password = "securePassword123";
+        request.setFullName("Bob Smith");
+        request.setEmail(null);
+        request.setPhoneNumber("9876543210");
+        request.setPassword("securePassword123");
 
-        when(userRepository.existsByPhoneNumber(request.phoneNumber)).thenReturn(false);
-        when(passwordEncoder.encode(request.password)).thenReturn("encodedPassword");
+        when(userRepository.existsByPhoneNumber(request.getPhoneNumber())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
 
         // Act
         authService.register(request);
@@ -120,13 +120,13 @@ class AuthServiceTest {
     @DisplayName("Should successfully register user with blank email and phone only")
     void testRegisterSuccessWithBlankEmailAndPhoneOnly() {
         RegisterRequest request = new RegisterRequest();
-        request.fullName = "Phone User";
-        request.email = "   ";
-        request.phoneNumber = "2223334444";
-        request.password = "securePassword123";
+        request.setFullName("Phone User");
+        request.setEmail("   ");
+        request.setPhoneNumber("2223334444");
+        request.setPassword("securePassword123");
 
-        when(userRepository.existsByPhoneNumber(request.phoneNumber)).thenReturn(false);
-        when(passwordEncoder.encode(request.password)).thenReturn("encodedPassword");
+        when(userRepository.existsByPhoneNumber(request.getPhoneNumber())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
 
         authService.register(request);
 
@@ -138,13 +138,13 @@ class AuthServiceTest {
     @DisplayName("Should successfully register user with email only and blank phone")
     void testRegisterSuccessWithEmailOnlyAndBlankPhone() {
         RegisterRequest request = new RegisterRequest();
-        request.fullName = "Email User";
-        request.email = "email-only@example.com";
-        request.phoneNumber = "   ";
-        request.password = "securePassword123";
+        request.setFullName("Email User");
+        request.setEmail("email-only@example.com");
+        request.setPhoneNumber("   ");
+        request.setPassword("securePassword123");
 
-        when(userRepository.existsByEmail(request.email)).thenReturn(false);
-        when(passwordEncoder.encode(request.password)).thenReturn("encodedPassword");
+        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
 
         authService.register(request);
 
@@ -157,10 +157,10 @@ class AuthServiceTest {
     void testRegisterFailsWithoutEmailOrPhone() {
         // Arrange
         RegisterRequest request = new RegisterRequest();
-        request.fullName = "Invalid User";
-        request.email = null;
-        request.phoneNumber = null;
-        request.password = "password123";
+        request.setFullName("Invalid User");
+        request.setEmail(null);
+        request.setPhoneNumber(null);
+        request.setPassword("password123");
 
         // Act & Assert
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
@@ -174,10 +174,10 @@ class AuthServiceTest {
     @DisplayName("Should throw BAD_REQUEST when password is null")
     void testRegisterFailsWithoutPassword() {
         RegisterRequest request = new RegisterRequest();
-        request.fullName = "Invalid User";
-        request.email = "missing-password@example.com";
-        request.phoneNumber = null;
-        request.password = null;
+        request.setFullName("Invalid User");
+        request.setEmail("missing-password@example.com");
+        request.setPhoneNumber(null);
+        request.setPassword(null);
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> authService.register(request));
@@ -191,10 +191,10 @@ class AuthServiceTest {
     @DisplayName("Should throw BAD_REQUEST when password is blank")
     void testRegisterFailsWithBlankPassword() {
         RegisterRequest request = new RegisterRequest();
-        request.fullName = "Invalid User";
-        request.email = "blank-password@example.com";
-        request.phoneNumber = null;
-        request.password = "   ";
+        request.setFullName("Invalid User");
+        request.setEmail("blank-password@example.com");
+        request.setPhoneNumber(null);
+        request.setPassword("   ");
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> authService.register(request));
@@ -208,7 +208,7 @@ class AuthServiceTest {
     @DisplayName("Should throw exception when email already exists")
     void testRegisterFailsWithDuplicateEmail() {
         // Arrange
-        when(userRepository.existsByEmail(validRegisterRequest.email)).thenReturn(true);
+        when(userRepository.existsByEmail(validRegisterRequest.getEmail())).thenReturn(true);
 
         // Act & Assert
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
@@ -222,8 +222,8 @@ class AuthServiceTest {
     @DisplayName("Should throw exception when phone number already exists")
     void testRegisterFailsWithDuplicatePhoneNumber() {
         // Arrange
-        when(userRepository.existsByEmail(validRegisterRequest.email)).thenReturn(false);
-        when(userRepository.existsByPhoneNumber(validRegisterRequest.phoneNumber)).thenReturn(true);
+        when(userRepository.existsByEmail(validRegisterRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByPhoneNumber(validRegisterRequest.getPhoneNumber())).thenReturn(true);
 
         // Act & Assert
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
@@ -239,10 +239,10 @@ class AuthServiceTest {
         // Arrange
         String rawPassword = "rawPassword123";
         String encodedPassword = "encodedPasswordHash";
-        validRegisterRequest.password = rawPassword;
+        validRegisterRequest.setPassword(rawPassword);
 
-        when(userRepository.existsByEmail(validRegisterRequest.email)).thenReturn(false);
-        when(userRepository.existsByPhoneNumber(validRegisterRequest.phoneNumber)).thenReturn(false);
+        when(userRepository.existsByEmail(validRegisterRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByPhoneNumber(validRegisterRequest.getPhoneNumber())).thenReturn(false);
         when(passwordEncoder.encode(rawPassword)).thenReturn(encodedPassword);
 
         // Act
@@ -257,9 +257,9 @@ class AuthServiceTest {
     @DisplayName("Should set user role to CUSTOMER on registration")
     void testUserRoleSetToCustomer() {
         // Arrange
-        when(userRepository.existsByEmail(validRegisterRequest.email)).thenReturn(false);
-        when(userRepository.existsByPhoneNumber(validRegisterRequest.phoneNumber)).thenReturn(false);
-        when(passwordEncoder.encode(validRegisterRequest.password)).thenReturn("encodedPassword");
+        when(userRepository.existsByEmail(validRegisterRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByPhoneNumber(validRegisterRequest.getPhoneNumber())).thenReturn(false);
+        when(passwordEncoder.encode(validRegisterRequest.getPassword())).thenReturn("encodedPassword");
 
         // Act
         authService.register(validRegisterRequest);
@@ -272,17 +272,17 @@ class AuthServiceTest {
     @DisplayName("Should save user with correct details")
     void testUserDetailsCorrectlySaved() {
         // Arrange
-        when(userRepository.existsByEmail(validRegisterRequest.email)).thenReturn(false);
-        when(userRepository.existsByPhoneNumber(validRegisterRequest.phoneNumber)).thenReturn(false);
-        when(passwordEncoder.encode(validRegisterRequest.password)).thenReturn("encodedPassword");
+        when(userRepository.existsByEmail(validRegisterRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByPhoneNumber(validRegisterRequest.getPhoneNumber())).thenReturn(false);
+        when(passwordEncoder.encode(validRegisterRequest.getPassword())).thenReturn("encodedPassword");
 
         // Act
         authService.register(validRegisterRequest);
 
         // Assert
-        verify(userRepository).save(argThat(user -> user.getFullName().equals(validRegisterRequest.fullName) &&
-                user.getEmail().equals(validRegisterRequest.email) &&
-                user.getPhoneNumber().equals(validRegisterRequest.phoneNumber)));
+        verify(userRepository).save(argThat(user -> user.getFullName().equals(validRegisterRequest.getFullName()) &&
+                user.getEmail().equals(validRegisterRequest.getEmail()) &&
+                user.getPhoneNumber().equals(validRegisterRequest.getPhoneNumber())));
     }
 
     @Test
@@ -403,3 +403,4 @@ class AuthServiceTest {
         }
     }
 }
+
