@@ -405,10 +405,10 @@ class ControllerIntegrationTest {
 
     private RegisterRequest buildRegisterRequest(String email, String phone, String password) {
         RegisterRequest r = new RegisterRequest();
-        r.fullName = "Test User";
-        r.email = email;
-        r.phoneNumber = phone;
-        r.password = password;
+        r.setFullName("Test User");
+        r.setEmail(email);
+        r.setPhoneNumber(phone);
+        r.setPassword(password);
         return r;
     }
 
