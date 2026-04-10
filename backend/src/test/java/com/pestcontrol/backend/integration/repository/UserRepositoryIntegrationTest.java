@@ -3,7 +3,6 @@ package com.pestcontrol.backend.integration.repository;
 import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.UserRole;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
-import com.pestcontrol.backend.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

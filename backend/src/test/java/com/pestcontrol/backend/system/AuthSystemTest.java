@@ -10,7 +10,6 @@ import com.pestcontrol.backend.infrastructure.repositories.ReservationRepository
 import com.pestcontrol.backend.infrastructure.repositories.TicketRepository;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
 import com.pestcontrol.backend.service.JWTService;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -60,9 +63,6 @@ class AuthSystemTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private EntityManager entityManager;
-
     @MockitoBean
     private JavaMailSender javaMailSender;
 
@@ -84,33 +84,63 @@ class AuthSystemTest {
     }
 
     @Test
-    void register_withValidEmail_returns200() throws Exception {
+    void register_withValidEmail_returns200AndPersistsUser() throws Exception {
         RegisterRequest request = buildRegisterRequest("new@test.com", null, "Pass1!");
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
+
+        Optional<User> saved = userRepository.findByEmail("new@test.com");
+        assertTrue(saved.isPresent(), "User should be persisted in DB");
+        assertEquals(UserRole.CUSTOMER, saved.get().getUserRole());
+        assertEquals("Test User", saved.get().getFullName());
+
+        assertTrue(passwordEncoder.matches("Pass1!", saved.get().getPasswordHash()),
+                "Password should be stored as a valid hash");
     }
 
     @Test
-    void register_withDuplicateEmail_returns409() throws Exception {
+    void register_withValidPhone_returns200AndPersistsUser() throws Exception {
+        RegisterRequest request = buildRegisterRequest(null, "5149990001", "Pass1!");
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        Optional<User> saved = userRepository.findByPhoneNumber("5149990001");
+        assertTrue(saved.isPresent(), "User registered by phone should be persisted in DB");
+        assertEquals(UserRole.CUSTOMER, saved.get().getUserRole());
+    }
+
+    @Test
+    void register_withDuplicateEmail_returns409AndDoesNotCreateExtraUser() throws Exception {
+        long countBefore = userRepository.count();
         RegisterRequest request = buildRegisterRequest("testuser@test.com", null, "Pass1!");
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
+
+        assertEquals(countBefore, userRepository.count(),
+                "Duplicate registration must not create an additional user in DB");
     }
 
     @Test
-    void register_withNoEmailOrPhone_returns400() throws Exception {
+    void register_withNoEmailOrPhone_returns400AndDoesNotCreateUser() throws Exception {
+        long countBefore = userRepository.count();
         RegisterRequest request = buildRegisterRequest(null, null, "Pass1!");
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+
+        assertEquals(countBefore, userRepository.count(),
+                "Invalid registration must not persist any user in DB");
     }
 
     @Test
@@ -123,16 +153,25 @@ class AuthSystemTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.user.email").value("testuser@test.com"));
+
+        Optional<User> user = userRepository.findByEmail("testuser@test.com");
+        assertTrue(user.isPresent());
+        assertEquals(UserRole.CUSTOMER, user.get().getUserRole(),
+                "Login must not change user role in DB");
     }
 
     @Test
-    void login_withWrongPassword_returns401() throws Exception {
+    void login_withWrongPassword_returns401AndDoesNotMutateUser() throws Exception {
         LoginRequest request = buildLoginRequest("testuser@test.com", null, "WrongPass!");
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
+
+        User user = userRepository.findByEmail("testuser@test.com").orElseThrow();
+        assertTrue(passwordEncoder.matches("TestPass1!", user.getPasswordHash()),
+                "Failed login attempt must not modify the stored password hash in DB");
     }
 
     @Test
@@ -143,6 +182,9 @@ class AuthSystemTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
+
+        assertTrue(userRepository.findByEmail("ghost@test.com").isEmpty(),
+                "Unknown login attempt must not create a user in DB");
     }
 
     private RegisterRequest buildRegisterRequest(String email, String phone, String password) {

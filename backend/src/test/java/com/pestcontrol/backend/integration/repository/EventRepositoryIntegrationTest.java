@@ -1,13 +1,8 @@
 package com.pestcontrol.backend.integration.repository;
 
-import com.pestcontrol.backend.api.dto.UpdateEventRequest;
 import com.pestcontrol.backend.domain.*;
 import com.pestcontrol.backend.domain.enums.*;
 import com.pestcontrol.backend.infrastructure.repositories.EventRepository;
-import com.pestcontrol.backend.infrastructure.repositories.ReservationRepository;
-import com.pestcontrol.backend.infrastructure.repositories.TicketRepository;
-import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
-import com.pestcontrol.backend.service.EventService;
 import com.pestcontrol.backend.service.ReservationEmailService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
