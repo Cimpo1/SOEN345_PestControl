@@ -27,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -90,12 +91,15 @@ class EventControllerIntegrationTest {
 
     @Test
     void getEvents_withEndDateBeforeStartDate_throws400() {
+        LocalDate startDate = java.time.LocalDate.of(2099, 1, 1);
+        LocalDate endDate = java.time.LocalDate.of(2099, 12, 31);
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
                 () -> eventController.getEvents(
                         null,
-                        java.time.LocalDate.of(2099, 12, 31),
-                        java.time.LocalDate.of(2099, 1, 1),
+                        endDate,
+                        startDate,
                         null,
                         null));
 
@@ -195,9 +199,12 @@ class EventControllerIntegrationTest {
 
     @Test
     void createEvent_withoutAuthHeader_throws401() {
+        var request = buildCreateRequest(1L);
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> eventController.createEvent(null, buildCreateRequest(1L)));
+                () -> eventController.createEvent(null, request)
+        );
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
         verify(eventRepository, never()).save(any());
@@ -205,9 +212,11 @@ class EventControllerIntegrationTest {
 
     @Test
     void createEvent_withCustomerToken_throws403() {
+        var request = buildCreateRequest(1L);
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> eventController.createEvent(customerToken, buildCreateRequest(1L)));
+                () -> eventController.createEvent(customerToken,request));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         verify(eventRepository, never()).save(any());
@@ -275,10 +284,11 @@ class EventControllerIntegrationTest {
     void updateEvent_onCancelledEvent_throws409() {
         Event cancelled = buildEvent(1L, EventStatus.CANCELLED);
         when(eventRepository.findById(1L)).thenReturn(Optional.of(cancelled));
+        var request = buildUpdateRequest(1L);
 
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> eventController.updateEvent(adminToken, 1L, buildUpdateRequest(1L)));
+                () -> eventController.updateEvent(adminToken, 1L, request));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
         verify(eventRepository, never()).save(any());
@@ -287,10 +297,11 @@ class EventControllerIntegrationTest {
     @Test
     void updateEvent_unknownId_throws404() {
         when(eventRepository.findById(99L)).thenReturn(Optional.empty());
+        var request = buildUpdateRequest(1L);
 
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> eventController.updateEvent(adminToken, 99L, buildUpdateRequest(1L)));
+                () -> eventController.updateEvent(adminToken, 99L, request));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
         verify(eventRepository, never()).save(any());

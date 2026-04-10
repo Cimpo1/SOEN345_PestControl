@@ -3,7 +3,6 @@ package com.pestcontrol.backend.integration.service;
 import com.pestcontrol.backend.api.dto.ReservationResponse;
 import com.pestcontrol.backend.domain.Event;
 import com.pestcontrol.backend.domain.Location;
-import com.pestcontrol.backend.domain.Reservation;
 import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.Category;
 import com.pestcontrol.backend.domain.enums.EventStatus;
@@ -117,8 +116,10 @@ class ReservationServiceIntegrationTest {
 
     @Test
     void reserve_withNullEventId_throwsBadRequest() {
+        Long userId = defaultUser.getUserId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.reserve(defaultUser.getUserId(), null, 1));
+                () -> reservationService.reserve(userId, null, 1));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
@@ -127,8 +128,12 @@ class ReservationServiceIntegrationTest {
     void reserve_withQuantityZero_throwsBadRequest() {
         Event event = savedFutureEvent("Zero Qty Event", EventStatus.SCHEDULED);
 
+        Long userId = defaultUser.getUserId();
+
+        Long eventId = event.getEventId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.reserve(defaultUser.getUserId(), event.getEventId(), 0));
+                () -> reservationService.reserve(userId, eventId, 0));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
@@ -137,26 +142,34 @@ class ReservationServiceIntegrationTest {
     void reserve_whenUserNotFound_throwsUnauthorized() {
         Event event = savedFutureEvent("Ghost User Event", EventStatus.SCHEDULED);
 
+        Long eventId = event.getEventId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.reserve(99999L, event.getEventId(), 1));
+                () -> reservationService.reserve(99999L, eventId, 1));
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }
 
     @Test
     void reserve_whenEventNotFound_throwsNotFound() {
+        Long userId = defaultUser.getUserId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.reserve(defaultUser.getUserId(), 99999L, 1));
+                () -> reservationService.reserve(userId, 99999L, 1));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
     @Test
     void reserve_whenEventIsCancelled_throwsBadRequest() {
+        Long userId = defaultUser.getUserId();
+
         Event event = savedFutureEvent("Cancelled Event", EventStatus.CANCELLED);
 
+        Long eventId = event.getEventId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.reserve(defaultUser.getUserId(), event.getEventId(), 1));
+                () -> reservationService.reserve(userId, eventId, 1));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
@@ -166,8 +179,12 @@ class ReservationServiceIntegrationTest {
         Event event = savedEventWithDates("Past Event",
                 "2025-06-01T18:00:00Z", "2025-06-01T22:00:00Z", EventStatus.SCHEDULED);
 
+        Long userId = defaultUser.getUserId();
+
+        Long eventId = event.getEventId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.reserve(defaultUser.getUserId(), event.getEventId(), 1));
+                () -> reservationService.reserve(userId,eventId, 1));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
@@ -176,8 +193,13 @@ class ReservationServiceIntegrationTest {
     void reserve_whenEventStatusIsPast_throwsBadRequest() {
         Event event = savedFutureEvent("Status Past Event", EventStatus.PAST);
 
+
+        Long userId = defaultUser.getUserId();
+
+        Long eventId = event.getEventId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.reserve(defaultUser.getUserId(), event.getEventId(), 1));
+                () -> reservationService.reserve(userId,eventId,  1));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
@@ -187,8 +209,13 @@ class ReservationServiceIntegrationTest {
         Event event = savedFutureEvent("Duplicate Event", EventStatus.SCHEDULED);
         reservationService.reserve(defaultUser.getUserId(), event.getEventId(), 1);
 
+
+        Long userId = defaultUser.getUserId();
+
+        Long eventId = event.getEventId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.reserve(defaultUser.getUserId(), event.getEventId(), 1));
+                () -> reservationService.reserve(userId,eventId,  1));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
     }
@@ -250,8 +277,10 @@ class ReservationServiceIntegrationTest {
 
     @Test
     void cancel_whenReservationNotFound_throwsNotFound() {
+        Long userId = defaultUser.getUserId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.cancel(defaultUser.getUserId(), 99999L));
+                () -> reservationService.cancel(userId, 99999L));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
@@ -263,8 +292,14 @@ class ReservationServiceIntegrationTest {
         Event event = savedFutureEvent("Forbidden Event", EventStatus.SCHEDULED);
         ReservationResponse reserved = reservationService.reserve(defaultUser.getUserId(), event.getEventId(), 1);
 
+
+        Long userId = otherUser.getUserId();
+
+        Long reservationId = reserved.getReservationId();
+
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.cancel(otherUser.getUserId(), reserved.getReservationId()));
+                () -> reservationService.cancel(userId,reservationId));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
@@ -275,8 +310,12 @@ class ReservationServiceIntegrationTest {
         ReservationResponse reserved = reservationService.reserve(defaultUser.getUserId(), event.getEventId(), 1);
         reservationService.cancel(defaultUser.getUserId(), reserved.getReservationId());
 
+        Long userId = defaultUser.getUserId();
+
+        Long reservationId = reserved.getReservationId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> reservationService.cancel(defaultUser.getUserId(), reserved.getReservationId()));
+                () -> reservationService.cancel(userId,reservationId));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
     }

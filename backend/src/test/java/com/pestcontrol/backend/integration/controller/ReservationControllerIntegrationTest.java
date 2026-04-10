@@ -93,9 +93,11 @@ class ReservationControllerIntegrationTest {
 
     @Test
     void reserve_withMissingAuthHeader_throws401() {
+        var request = buildReservationRequest(10L, 1);
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> reservationController.reserve(null, buildReservationRequest(10L, 1)));
+                () -> reservationController.reserve(null, request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
         verify(reservationRepository, never()).save(any());
@@ -103,11 +105,13 @@ class ReservationControllerIntegrationTest {
 
     @Test
     void reserve_withInvalidToken_throws401() {
+        var request = buildReservationRequest(10L, 1);
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
                 () -> reservationController.reserve(
                         "Bearer not.a.valid.jwt",
-                        buildReservationRequest(10L, 1)));
+                        request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
         verify(reservationRepository, never()).save(any());
@@ -122,9 +126,11 @@ class ReservationControllerIntegrationTest {
         when(reservationRepository.findByUserAndEventAndStatusIn(any(), any(), any()))
                 .thenReturn(List.of(existing));
 
+        var request = buildReservationRequest(10L, 1);
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> reservationController.reserve(userToken, buildReservationRequest(10L, 1)));
+                () -> reservationController.reserve(userToken, request));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
         verify(reservationRepository, never()).save(any());
@@ -137,9 +143,11 @@ class ReservationControllerIntegrationTest {
         when(userRepository.findById(2L)).thenReturn(Optional.of(testUser));
         when(eventRepository.findById(10L)).thenReturn(Optional.of(cancelled));
 
+        var request = buildReservationRequest(10L, 1);
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> reservationController.reserve(userToken, buildReservationRequest(10L, 1)));
+                () -> reservationController.reserve(userToken, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(reservationRepository, never()).save(any());
@@ -147,9 +155,11 @@ class ReservationControllerIntegrationTest {
 
     @Test
     void reserve_withQuantityZero_throws400() {
+        var request = buildReservationRequest(10L, 0);
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> reservationController.reserve(userToken, buildReservationRequest(10L, 0)));
+                () -> reservationController.reserve(userToken, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(reservationRepository, never()).save(any());
@@ -160,9 +170,11 @@ class ReservationControllerIntegrationTest {
         when(userRepository.findById(2L)).thenReturn(Optional.of(testUser));
         when(eventRepository.findById(10L)).thenReturn(Optional.empty());
 
+        var request = buildReservationRequest(10L, 1);
+
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> reservationController.reserve(userToken, buildReservationRequest(10L, 1)));
+                () -> reservationController.reserve(userToken, request));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }

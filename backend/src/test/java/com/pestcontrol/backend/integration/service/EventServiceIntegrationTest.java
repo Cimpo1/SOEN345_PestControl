@@ -169,7 +169,9 @@ class EventServiceIntegrationTest {
         eventRepository.save(buildEvent(defaultLocation, "Fall Fest", Category.SPORTS,
                 OffsetDateTime.parse("2026-10-15T10:00:00Z")));
 
-        List<EventResponse> results = eventService.getEvents(null, null, LocalDate.of(2026, 6, 30), null, null);
+        LocalDate endDate = java.time.LocalDate.of(2026, 6, 30);
+
+        List<EventResponse> results = eventService.getEvents(null, null, endDate, null, null);
 
         assertEquals(1, results.size());
         assertEquals("Spring Fling", results.get(0).getTitle());
@@ -342,8 +344,10 @@ class EventServiceIntegrationTest {
         Event event = eventRepository.save(buildEventWithStatus(defaultLocation, "Already Cancelled", Category.CONCERT,
                 OffsetDateTime.parse("2026-10-01T20:00:00Z"), EventStatus.CANCELLED));
 
+        Long eventId = event.getEventId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> eventService.cancelEvent(null, event.getEventId()));
+                () -> eventService.cancelEvent(null, eventId));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
     }
@@ -353,8 +357,10 @@ class EventServiceIntegrationTest {
         Event event = eventRepository.save(buildEventWithStatus(defaultLocation, "Past Show", Category.CONCERT,
                 OffsetDateTime.parse("2024-01-01T10:00:00Z"), EventStatus.PAST));
 
+        Long eventId = event.getEventId();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> eventService.cancelEvent(null, event.getEventId()));
+                () -> eventService.cancelEvent(null, eventId));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
@@ -534,8 +540,12 @@ class EventServiceIntegrationTest {
         Event event = eventRepository.save(buildEventWithStatus(defaultLocation, "Cancelled Show", Category.CONCERT,
                 OffsetDateTime.now().plusDays(10), EventStatus.CANCELLED));
 
+        Long eventId = event.getEventId();
+
+        UpdateEventRequest request = buildValidUpdateRequest();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> eventService.updateEvent(null, event.getEventId(), buildValidUpdateRequest()));
+                () -> eventService.updateEvent(null, eventId, request));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
     }
@@ -545,8 +555,12 @@ class EventServiceIntegrationTest {
         Event event = eventRepository.save(buildEventWithStatus(defaultLocation, "Past Show", Category.CONCERT,
                 OffsetDateTime.parse("2024-01-01T10:00:00Z"), EventStatus.PAST));
 
+        Long eventId = event.getEventId();
+
+        UpdateEventRequest request = buildValidUpdateRequest();
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> eventService.updateEvent(null, event.getEventId(), buildValidUpdateRequest()));
+                () -> eventService.updateEvent(null, eventId, request));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
     }
@@ -558,7 +572,7 @@ class EventServiceIntegrationTest {
         User user = userRepository.save(new User("Fan", "fan@test.com", "5140001099",
                 "Pass1!", UserRole.CUSTOMER));
 
-        Reservation reservation = reservationRepository.save(buildReservation(user, event, ReservationStatus.PENDING, "79.99"));
+        reservationRepository.save(buildReservation(user, event, ReservationStatus.PENDING, "79.99"));
 
         UpdateEventRequest request = buildValidUpdateRequest();
         request.setStartDateTime(OffsetDateTime.now().plusDays(15));
