@@ -1,19 +1,27 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import type { NavigatorScreenParams } from "@react-navigation/native";
+import { useAuth } from "../context/AuthContext";
 import HomeStack, { type HomeStackParamList } from "./HomeStack";
 import EventsStack, { type EventsStackParamList } from "./EventsStack";
 import MyEventsStack, { type MyEventsStackParamList } from "./MyEventsStack";
+import AdminEventsStack, {
+  type AdminEventsStackParamList,
+} from "./AdminEventsStack";
 
 export type AppTabsParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
   Events: NavigatorScreenParams<EventsStackParamList>;
   MyEvents: NavigatorScreenParams<MyEventsStackParamList>;
+  AdminEvents: NavigatorScreenParams<AdminEventsStackParamList>;
 };
 
 const Tab = createBottomTabNavigator<AppTabsParamList>();
 
 export default function AppTabs() {
+  const { user } = useAuth();
+  const isAdmin = user?.userRole === "ADMIN";
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -32,7 +40,9 @@ export default function AppTabs() {
               ? "calendar-outline"
               : route.name === "MyEvents"
                 ? "bookmark-outline"
-                : "home-outline";
+                : route.name === "AdminEvents"
+                  ? "settings-outline"
+                  : "home-outline";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
@@ -48,6 +58,13 @@ export default function AppTabs() {
         component={MyEventsStack}
         options={{ title: "My Events" }}
       />
+      {isAdmin && (
+        <Tab.Screen
+          name="AdminEvents"
+          component={AdminEventsStack}
+          options={{ title: "Admin" }}
+        />
+      )}
     </Tab.Navigator>
   );
 }

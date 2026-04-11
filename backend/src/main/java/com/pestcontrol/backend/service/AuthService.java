@@ -23,11 +23,15 @@ public class AuthService {
     }
 
     public void register(RegisterRequest request) {
-        String normalizedEmail = normalizeEmail(request.email);
-        String normalizedPhoneNumber = normalizeValue(request.phoneNumber);
+        String normalizedEmail = normalizeEmail(request.getEmail());
+        String normalizedPhoneNumber = normalizeValue(request.getPhoneNumber());
 
         if (normalizedEmail == null && normalizedPhoneNumber == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email or phone required");
+        }
+
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password required");
         }
 
         // Duplicates
@@ -38,10 +42,10 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Phone already exists");
         }
 
-        String passwordHash = passwordEncoder.encode(request.password);
+        String passwordHash = passwordEncoder.encode(request.getPassword());
 
         User user = new User();
-        user.setFullName(request.fullName);
+        user.setFullName(request.getFullName());
         user.setEmail(normalizedEmail);
         user.setPhoneNumber(normalizedPhoneNumber);
         user.setPasswordHash(passwordHash);

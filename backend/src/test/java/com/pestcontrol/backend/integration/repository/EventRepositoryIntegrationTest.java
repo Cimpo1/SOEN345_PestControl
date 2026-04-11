@@ -1,23 +1,24 @@
 package com.pestcontrol.backend.integration.repository;
 
-import com.pestcontrol.backend.domain.Event;
-import com.pestcontrol.backend.domain.Location;
-import com.pestcontrol.backend.domain.enums.Category;
-import com.pestcontrol.backend.domain.enums.EventStatus;
+import com.pestcontrol.backend.domain.*;
+import com.pestcontrol.backend.domain.enums.*;
 import com.pestcontrol.backend.infrastructure.repositories.EventRepository;
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
 @ActiveProfiles("test")
-@DataJpaTest
+@Transactional
 class EventRepositoryIntegrationTest {
 
     @Autowired
@@ -25,6 +26,15 @@ class EventRepositoryIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    private Location defaultLocation;
+
+    @BeforeEach
+    void setUp() {
+        defaultLocation = new Location("Bell Centre", "1909 Avenue des Canadiens-de-Montréal", "Montreal", "QC", "H3B 5E8");
+        entityManager.persist(defaultLocation);
+        entityManager.flush();
+    }
 
     @Test
     void findByCategory_whenEventsExist_returnsOnlyMatchingEvents() {

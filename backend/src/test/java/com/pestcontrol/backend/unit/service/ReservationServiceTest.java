@@ -40,7 +40,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -135,13 +134,18 @@ class ReservationServiceTest {
                 assertEquals("REGISTERED", response.getInteractionStatus());
 
                 ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
+                ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
+                ArgumentCaptor<Reservation> emailReservationCaptor = ArgumentCaptor.forClass(Reservation.class);
                 ArgumentCaptor<List> emailTicketsCaptor = ArgumentCaptor.forClass(List.class);
                 verify(reservationRepository).save(captor.capture());
                 assertEquals(ReservationStatus.CONFIRMED, captor.getValue().getStatus());
                 assertEquals(new BigDecimal("119.98"), captor.getValue().getTotalPrice());
                 verify(ticketRepository).saveAll(any());
-                verify(reservationEmailService).sendReservationConfirmation(eq("customer@test.com"),
-                                any(Reservation.class), emailTicketsCaptor.capture());
+                verify(reservationEmailService).sendReservationConfirmation(
+                                emailCaptor.capture(),
+                                emailReservationCaptor.capture(),
+                                emailTicketsCaptor.capture());
+                assertEquals("customer@test.com", emailCaptor.getValue());
                 assertEquals(2, emailTicketsCaptor.getValue().size());
         }
 
@@ -410,8 +414,10 @@ class ReservationServiceTest {
                 verify(ticketRepository).findByReservation(reservation);
                 verify(ticketRepository).saveAll(any());
                 assertEquals(TicketStatus.VOIDED, ticket.getStatus());
-                verify(reservationEmailService).sendCancellationConfirmation(eq("customer@test.com"),
-                                any(Reservation.class), any());
+                verify(reservationEmailService).sendCancellationConfirmation(
+                                "customer@test.com",
+                                reservation,
+                                List.of(ticket));
         }
 
         @Test
@@ -432,8 +438,10 @@ class ReservationServiceTest {
 
                 assertEquals("CANCELLED", response.getReservationStatus());
                 verify(ticketRepository, never()).saveAll(any());
-                verify(reservationEmailService).sendCancellationConfirmation(eq("customer@test.com"),
-                                any(Reservation.class), any());
+                verify(reservationEmailService).sendCancellationConfirmation(
+                                "customer@test.com",
+                                reservation,
+                                List.of());
         }
 
         @Test

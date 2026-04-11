@@ -1,22 +1,28 @@
 package com.pestcontrol.backend.integration.repository;
 
-import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
 import com.pestcontrol.backend.domain.User;
 import com.pestcontrol.backend.domain.enums.UserRole;
+import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("test")
-@DataJpaTest
+@SpringBootTest
 class UserRepositoryIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @BeforeEach
+    void setUp() {
+        userRepository.deleteAll();
+    }
 
     @Test
     void saveUser_findReturnsUserSuccessfully() {
@@ -99,13 +105,7 @@ class UserRepositoryIntegrationTest {
         assertThrows(DataIntegrityViolationException.class, () -> userRepository.saveAndFlush(duplicateEmailUser));
     }
 
-    private User buildUser(String email, String phoneNumber) {
-        return new User(
-                "Alice Smith",
-                email,
-                phoneNumber,
-                "hashed-password",
-                UserRole.CUSTOMER
-        );
+    private User buildUser(String email, String phone) {
+        return new User("Alice Smith", email, phone, "hashed-password", UserRole.CUSTOMER);
     }
 }

@@ -30,8 +30,8 @@ class AuthControllerTest {
     @Test
     void shouldRegisterUser() {
         RegisterRequest request = new RegisterRequest();
-        request.fullName = "testuser";
-        request.password = "password";
+        request.setFullName("testuser");
+        request.setPassword("password");
 
         authController.registerUser(request);
 
@@ -57,3 +57,4 @@ class AuthControllerTest {
         verify(authService, times(1)).login(request);
     }
 }
+

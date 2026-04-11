@@ -15,6 +15,8 @@ interface EventFiltersProps<
   onStartDateChange: (value: string) => void;
   endDateValue: string;
   onEndDateChange: (value: string) => void;
+  startDatePlaceholder?: string;
+  endDatePlaceholder?: string;
   categoryOptions: readonly CategoryType[];
   selectedCategories: CategoryType[];
   onToggleCategory: (category: CategoryType) => void;
@@ -42,6 +44,8 @@ export default function EventFilters<
   onStartDateChange,
   endDateValue,
   onEndDateChange,
+  startDatePlaceholder,
+  endDatePlaceholder,
   categoryOptions,
   selectedCategories,
   onToggleCategory,
@@ -83,14 +87,14 @@ export default function EventFilters<
             <View style={styles.rowInputs}>
               <TextInput
                 style={[styles.filterInput, styles.halfInput]}
-                placeholder="Start date YYYY-MM-DD"
+                placeholder={startDatePlaceholder || "Start date"}
                 placeholderTextColor="#6f7a86"
                 value={startDateValue}
                 onChangeText={onStartDateChange}
               />
               <TextInput
                 style={[styles.filterInput, styles.halfInput]}
-                placeholder="End date YYYY-MM-DD"
+                placeholder={endDatePlaceholder || "End date"}
                 placeholderTextColor="#6f7a86"
                 value={endDateValue}
                 onChangeText={onEndDateChange}
