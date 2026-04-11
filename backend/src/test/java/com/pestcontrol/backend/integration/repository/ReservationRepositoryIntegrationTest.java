@@ -12,6 +12,7 @@ import com.pestcontrol.backend.infrastructure.repositories.EventRepository;
 import com.pestcontrol.backend.infrastructure.repositories.ReservationRepository;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -37,6 +38,16 @@ class ReservationRepositoryIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    private Location defaultLocation;
+
+    @BeforeEach
+    void setUp() {
+
+        defaultLocation = new Location("Test Venue", "1 Test St", "Montreal", "QC", "H1A 1A1");
+        entityManager.persist(defaultLocation);
+        entityManager.flush();
+    }
 
     @Test
     void findByUser_whenReservationsExist_returnsOnlyUserReservations() {
