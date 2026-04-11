@@ -25,7 +25,7 @@ MAIL_USERNAME=your_mail_username
 MAIL_PASSWORD=your_mail_password
 MAIL_FROM=your_mail_from_address
 MAIL_SMTP_AUTH=true
-MAIL_SMTP_STARTTLS=
+MAIL_SMTP_STARTTLS=false
 MAIL_SMTP_SSL_ENABLE=true
 MAIL_SSL_TRUST=your_mail_ssl_trust
 MAIL_SSL_CHECK_SERVER_IDENTITY=false
@@ -77,10 +77,6 @@ MAIL_SSL_CHECK_SERVER_IDENTITY=false
    ```
    mvn test
    ```
-### Mobile Application Testing:
-1. Navigate to the mobile directory and run the following command to execute tests:
-   ```
-   npm test
-   ```
+
 ## Additional Notes:
 - Ensure that your mobile device and backend server are on the same network for the application to communicate properly.
