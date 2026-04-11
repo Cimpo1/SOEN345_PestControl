@@ -144,7 +144,7 @@ class AuthSystemTest {
     }
 
     @Test
-    void login_withValidCredentials_returnsTokenAndUser() throws Exception {
+    void login_withValidCredentialsEmail_returnsTokenAndUser() throws Exception {
         LoginRequest request = buildLoginRequest("testuser@test.com", null, "TestPass1!");
 
         mockMvc.perform(post("/auth/login")
@@ -155,6 +155,23 @@ class AuthSystemTest {
                 .andExpect(jsonPath("$.user.email").value("testuser@test.com"));
 
         Optional<User> user = userRepository.findByEmail("testuser@test.com");
+        assertTrue(user.isPresent());
+        assertEquals(UserRole.CUSTOMER, user.get().getUserRole(),
+                "Login must not change user role in DB");
+    }
+
+    @Test
+    void login_withValidCredentialsPhone_returnsTokenAndUser() throws Exception {
+        LoginRequest request = buildLoginRequest(null, "5140001001", "TestPass1!");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.user.phoneNumber").value("5140001001"));
+
+        Optional<User> user = userRepository.findByPhoneNumber("5140001001");
         assertTrue(user.isPresent());
         assertEquals(UserRole.CUSTOMER, user.get().getUserRole(),
                 "Login must not change user role in DB");
@@ -184,6 +201,19 @@ class AuthSystemTest {
                 .andExpect(status().isUnauthorized());
 
         assertTrue(userRepository.findByEmail("ghost@test.com").isEmpty(),
+                "Unknown login attempt must not create a user in DB");
+    }
+
+    @Test
+    void login_withUnknownPhone_returns401() throws Exception {
+        LoginRequest request = buildLoginRequest(null, "5149990000", "TestPass1!");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+
+        assertTrue(userRepository.findByPhoneNumber("5149990000").isEmpty(),
                 "Unknown login attempt must not create a user in DB");
     }
 

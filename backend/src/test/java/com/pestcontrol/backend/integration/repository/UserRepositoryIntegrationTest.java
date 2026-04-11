@@ -8,9 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,9 +18,6 @@ class UserRepositoryIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
-
-    @MockitoBean
-    private JavaMailSender javaMailSender;
 
     @BeforeEach
     void setUp() {

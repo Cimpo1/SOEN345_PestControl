@@ -3,15 +3,12 @@ package com.pestcontrol.backend.integration.repository;
 import com.pestcontrol.backend.domain.*;
 import com.pestcontrol.backend.domain.enums.*;
 import com.pestcontrol.backend.infrastructure.repositories.EventRepository;
-import com.pestcontrol.backend.service.ReservationEmailService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -29,12 +26,6 @@ class EventRepositoryIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
-
-    @MockitoBean
-    private JavaMailSender javaMailSender;
-
-    @MockitoBean
-    private ReservationEmailService reservationEmailService;
 
     private Location defaultLocation;
 

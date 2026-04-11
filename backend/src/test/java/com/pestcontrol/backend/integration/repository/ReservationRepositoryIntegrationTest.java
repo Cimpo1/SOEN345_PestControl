@@ -11,14 +11,12 @@ import com.pestcontrol.backend.domain.enums.UserRole;
 import com.pestcontrol.backend.infrastructure.repositories.EventRepository;
 import com.pestcontrol.backend.infrastructure.repositories.ReservationRepository;
 import com.pestcontrol.backend.infrastructure.repositories.UserRepository;
-import com.pestcontrol.backend.service.ReservationEmailService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -40,9 +38,6 @@ class ReservationRepositoryIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
-
-    @MockitoBean
-    private ReservationEmailService reservationEmailService;
 
     private Location defaultLocation;
 
