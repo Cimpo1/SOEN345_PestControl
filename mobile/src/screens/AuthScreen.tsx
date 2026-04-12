@@ -142,6 +142,7 @@ export default function AuthScreen() {
         <Text style={styles.welcomeTitle}>
           Welcome to <Text style={styles.appNameHighlight}>Event Control</Text>
         </Text>
+        <Text style={styles.welcomeSubtext}>by Pest Control</Text>
         <Image
           source={require("../../assets/EventControlLogo.png")}
           style={{ width: 96, height: 96, alignSelf: "center" }}

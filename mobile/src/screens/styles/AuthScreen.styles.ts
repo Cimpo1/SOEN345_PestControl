@@ -26,6 +26,15 @@ export const styles = StyleSheet.create({
   appNameHighlight: {
     color: "#e5be86",
   },
+  welcomeSubtext: {
+    marginTop: -20,
+    marginBottom: 4,
+    alignSelf: "center",
+    color: "#8f8578",
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+  },
   tabs: {
     flexDirection: "row",
     borderBottomWidth: 1,
