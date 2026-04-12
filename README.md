@@ -12,6 +12,7 @@ This project is a cloud-based ticket reservation mobile application that allows 
 **There are two ways to run the application:**
 ### Run Hosted Application:
 Run the entire application that is hosted on a Linux server using the following QR code and scanning it with the Expo Go app on your mobile device:
+
   ![QR Code](./docs/Hosted_App_QR_Code.png)
 
 ### Run Locally:
