@@ -1,15 +1,21 @@
-# SOEN 345 - Pest Control
+# SOEN 345 - Team Pest Control
 ## Team Members:
 - Sebastian Bulgac
 - David Cimpoiasu
 - Kevin Ung
 - Dmitrii Cazacu
 
-## Project Overview: Cloud-based Ticket Reservation Application
-This project is a mobile application that allows users to view and reserve tickets for different events. The application is built using React Native and Expo for the frontend, and it communicates with a backend server to manage ticket reservations. This project features user authentication, event browsing, ticket reservation, as well as extensive testing to ensure reliability and performance.
+## Project Overview: Event Control
+This project is a cloud-based ticket reservation mobile application that allows users to view and reserve tickets for different events. The application is built using React Native and Expo for the frontend, and it communicates with a backend server to manage ticket reservations. This project features user authentication, event browsing, ticket reservation, as well as extensive testing to ensure reliability and performance.
 
 ## How to Run: 
-### Backend (Spring Boot Java Application):
+**There are two ways to run the application:**
+### Run Hosted Application:
+Run the entire application that is hosted on a Linux server using the following QR code and scanning it with the Expo Go app on your mobile device:
+  ![QR Code](./docs/Hosted_App_QR_Code.png)
+
+### Run Locally:
+#### Backend (Spring Boot Java Application):
 1. Install Java JDK 21 or higher.
 2. Navigate to the backend directory and run the following command to start the server:
    ```
@@ -32,7 +38,7 @@ MAIL_SSL_CHECK_SERVER_IDENTITY=false
 ```
 
 
-### Mobile Application (React Native with Expo):
+#### Frontend Mobile Application (React Native with Expo):
 1. Install Node.js and npm.
 2. Navigate to the mobile directory and run the following command to install dependencies:
    ```
@@ -47,6 +53,8 @@ MAIL_SSL_CHECK_SERVER_IDENTITY=false
    - (b) Run the application on an Android emulator. Follow the instructions in the `run_android_emulator.md` file for detailed steps.
 
 > Note: Before running the frontend, ensure that the backend server is running and that the `EXPO_PUBLIC_BACKEND_IP` variable in the `.env` file is set to the correct IP address of your backend server. Notes below provide instructions on how to find your local IP address.
+
+> Ensure that your mobile device and backend server are on the same network for the application to communicate properly.
 
 
 ## Finding Your Local IP Address:
@@ -78,5 +86,3 @@ MAIL_SSL_CHECK_SERVER_IDENTITY=false
    mvn test
    ```
 
-## Additional Notes:
-- Ensure that your mobile device and backend server are on the same network for the application to communicate properly.

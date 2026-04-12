@@ -16,6 +16,16 @@ export const styles = StyleSheet.create({
     width: 340,
     gap: 14,
   },
+  welcomeTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#f0e6d3",
+    alignSelf: "center",
+  },
+  appNameHighlight: {
+    color: "#e5be86",
+  },
   tabs: {
     flexDirection: "row",
     borderBottomWidth: 1,

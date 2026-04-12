@@ -139,9 +139,12 @@ export default function AuthScreen() {
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <View style={styles.card}>
+        <Text style={styles.welcomeTitle}>
+          Welcome to <Text style={styles.appNameHighlight}>Event Control</Text>
+        </Text>
         <Image
-          source={require("../../assets/favicon.png")}
-          style={{ width: 64, height: 64, alignSelf: "center" }}
+          source={require("../../assets/EventControlLogo.png")}
+          style={{ width: 96, height: 96, alignSelf: "center" }}
         />
         <View style={styles.tabs}>
           {(["signin", "signup"] as Tab[]).map((t) => (
