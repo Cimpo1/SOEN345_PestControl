@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JWTService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backend</a> &gt; <a href="index.source.html" class="el_package">com.pestcontrol.backend.service</a> &gt; <span class="el_source">JWTService.java</span></div><h1>JWTService.java</h1><pre class="source lang-java linenums">package com.pestcontrol.backend.service;
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+
+import java.security.Key;
+import java.util.Date;
+
+import com.pestcontrol.backend.domain.User;
+
+public class JWTService {
+
+    private JWTService(){}
+
+
+
+    private static final String PASS_PHRASE = &quot;ILovePotatooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo&quot;;
+    @SuppressWarnings(&quot;java:S6437&quot;) //Suppress the warning coming from SonarQube because the password key is exposed as this program is
+    //for a school project and to not complicate the prep before loading the program
+<span class="fc" id="L20">    private static final Key key = Keys.hmacShaKeyFor(PASS_PHRASE.getBytes());</span>
+
+    private static final long EXPIRATION_TIME = 3600000;
+
+    public static String generateToken(User user) {
+<span class="fc" id="L25">        return Jwts.builder()</span>
+<span class="fc" id="L26">                .setSubject(user.getUserId().toString())</span>
+<span class="fc" id="L27">                .claim(&quot;fullName&quot;, user.getFullName())</span>
+<span class="fc" id="L28">                .claim(&quot;email&quot;, user.getEmail())</span>
+<span class="fc" id="L29">                .claim(&quot;role&quot;, user.getUserRole())</span>
+<span class="fc" id="L30">                .claim(&quot;phoneNumber&quot;, user.getPhoneNumber())</span>
+<span class="fc" id="L31">                .setIssuedAt(new Date())</span>
+<span class="fc" id="L32">                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))</span>
+<span class="fc" id="L33">                .signWith(key)</span>
+<span class="fc" id="L34">                .compact();</span>
+    }
+
+    public static boolean validateToken(String token) {
+        try {
+<span class="fc" id="L39">            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);</span>
+<span class="fc" id="L40">            return true;</span>
+<span class="fc" id="L41">        } catch (JwtException | IllegalArgumentException e) {</span>
+<span class="fc" id="L42">            return false;</span>
+        }
+    }
+
+    public static Claims getClaims(String token) {
+        try {
+<span class="fc" id="L48">            return Jwts.parserBuilder()</span>
+<span class="fc" id="L49">                    .setSigningKey(key)</span>
+<span class="fc" id="L50">                    .build()</span>
+<span class="fc" id="L51">                    .parseClaimsJws(token)</span>
+<span class="fc" id="L52">                    .getBody();</span>
+<span class="fc" id="L53">        } catch (JwtException e) {</span>
+<span class="fc" id="L54">            throw new JwtException(&quot;Invalid JWT token&quot;, e);</span>
+        }
+    }
+
+    public static Long getUserId(String token) {
+<span class="fc" id="L59">        Claims claims = getClaims(token);</span>
+<span class="fc" id="L60">        return Long.parseLong(claims.getSubject());</span>
+    }
+
+    public static String getRole(String token) {
+<span class="fc" id="L64">        Claims claims = getClaims(token);</span>
+<span class="fc" id="L65">        return (String) claims.get(&quot;role&quot;);</span>
+    }
+
+    public static String getFullName(String token) {
+<span class="fc" id="L69">        Claims claims = getClaims(token);</span>
+<span class="fc" id="L70">        return (String) claims.get(&quot;fullName&quot;);</span>
+    }
+
+    public static String getEmail(String token) {
+<span class="fc" id="L74">        Claims claims = getClaims(token);</span>
+<span class="fc" id="L75">        return (String) claims.get(&quot;email&quot;);</span>
+    }
+
+    public static String getPhoneNumber(String token) {
+<span class="fc" id="L79">        Claims claims = getClaims(token);</span>
+<span class="fc" id="L80">        return (String) claims.get(&quot;phoneNumber&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationEmailService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backend</a> &gt; <a href="index.source.html" class="el_package">com.pestcontrol.backend.service</a> &gt; <span class="el_source">ReservationEmailService.java</span></div><h1>ReservationEmailService.java</h1><pre class="source lang-java linenums">package com.pestcontrol.backend.service;
+
+import com.pestcontrol.backend.domain.Event;
+import com.pestcontrol.backend.domain.Location;
+import com.pestcontrol.backend.domain.Reservation;
+import com.pestcontrol.backend.domain.Ticket;
+import com.pestcontrol.backend.domain.enums.TicketStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+@Service
+public class ReservationEmailService {
+<span class="fc" id="L20">    private static final Logger logger = LoggerFactory.getLogger(ReservationEmailService.class);</span>
+<span class="fc" id="L21">    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm 'UTC'&quot;);</span>
+    private static final String LABEL_RESERVATION_ID = &quot;Reservation ID: &quot;;
+    private static final String LABEL_EVENT = &quot;Event: &quot;;
+    private static final String LABEL_TICKET_ID = &quot;- Ticket ID: &quot;;
+    private static final String LABEL_PRICE = &quot; | Price: &quot;;
+    private static final String LABEL_STATUS = &quot; | Status: &quot;;
+
+    private final JavaMailSender mailSender;
+
+    @Value(&quot;${MAIL_FROM:${spring.mail.username:}}&quot;)
+    private String fromAddress;
+
+<span class="fc" id="L33">    public ReservationEmailService(JavaMailSender mailSender) {</span>
+<span class="fc" id="L34">        this.mailSender = mailSender;</span>
+<span class="fc" id="L35">    }</span>
+
+    public void sendReservationConfirmation(String email, Reservation reservation, List&lt;Ticket&gt; tickets) {
+<span class="pc bpc" id="L38" title="1 of 4 branches missed.">        if (email == null || email.isBlank()) {</span>
+<span class="fc" id="L39">            return;</span>
+        }
+
+<span class="fc" id="L42">        String body = buildReservationConfirmationBody(reservation, tickets);</span>
+<span class="fc" id="L43">        sendEmail(email, &quot;Reservation Confirmed&quot;, body);</span>
+<span class="fc" id="L44">    }</span>
+
+    public void sendCancellationConfirmation(String email, Reservation reservation, List&lt;Ticket&gt; tickets) {
+<span class="pc bpc" id="L47" title="1 of 4 branches missed.">        if (email == null || email.isBlank()) {</span>
+<span class="fc" id="L48">            return;</span>
+        }
+
+<span class="fc" id="L51">        String body = buildCancellationConfirmationBody(reservation, tickets);</span>
+<span class="fc" id="L52">        sendEmail(email, &quot;Reservation Cancelled&quot;, body);</span>
+<span class="fc" id="L53">    }</span>
+
+    public void sendEventCancellationConfirmation(String email, Reservation reservation, List&lt;Ticket&gt; tickets) {
+<span class="pc bpc" id="L56" title="2 of 4 branches missed.">        if (email == null || email.isBlank()) {</span>
+<span class="nc" id="L57">            return;</span>
+        }
+
+<span class="fc" id="L60">        String body = buildEventCancellationBody(reservation, tickets);</span>
+<span class="fc" id="L61">        sendEmail(email, &quot;Event Cancelled&quot;, body);</span>
+<span class="fc" id="L62">    }</span>
+
+    public void sendEventTimeUpdatedConfirmation(
+            String email,
+            Reservation reservation,
+            List&lt;Ticket&gt; tickets,
+            String oldStartTime,
+            String oldEndTime) {
+<span class="pc bpc" id="L70" title="2 of 4 branches missed.">        if (email == null || email.isBlank()) {</span>
+<span class="nc" id="L71">            return;</span>
+        }
+
+<span class="fc" id="L74">        String body = buildEventTimeUpdatedBody(reservation, tickets, oldStartTime, oldEndTime);</span>
+<span class="fc" id="L75">        sendEmail(email, &quot;Event Time Updated&quot;, body);</span>
+<span class="fc" id="L76">    }</span>
+
+    private void sendEmail(String to, String subject, String body) {
+        try {
+<span class="fc" id="L80">            SimpleMailMessage message = new SimpleMailMessage();</span>
+<span class="fc" id="L81">            message.setTo(to);</span>
+<span class="pc bpc" id="L82" title="1 of 4 branches missed.">            if (fromAddress != null &amp;&amp; !fromAddress.isBlank()) {</span>
+<span class="fc" id="L83">                message.setFrom(fromAddress);</span>
+            }
+<span class="fc" id="L85">            message.setSubject(subject);</span>
+<span class="fc" id="L86">            message.setText(body);</span>
+<span class="fc" id="L87">            mailSender.send(message);</span>
+<span class="fc" id="L88">        } catch (Exception exception) {</span>
+<span class="fc" id="L89">            logger.error(&quot;Failed to send reservation email to {}&quot;, to, exception);</span>
+<span class="fc" id="L90">        }</span>
+<span class="fc" id="L91">    }</span>
+
+    private String buildReservationConfirmationBody(Reservation reservation, List&lt;Ticket&gt; tickets) {
+<span class="fc" id="L94">        StringBuilder builder = new StringBuilder();</span>
+<span class="fc" id="L95">        Event event = reservation.getEvent();</span>
+<span class="fc" id="L96">        Location location = event.getLocation();</span>
+
+<span class="fc" id="L98">        builder.append(&quot;Your reservation has been confirmed.\n\n&quot;)</span>
+<span class="fc" id="L99">                .append(LABEL_RESERVATION_ID).append(reservation.getReservationId()).append(&quot;\n&quot;)</span>
+<span class="fc" id="L100">                .append(LABEL_EVENT).append(event.getTitle()).append(&quot;\n&quot;)</span>
+<span class="fc" id="L101">                .append(&quot;Start: &quot;).append(event.getStartDateTime().format(DATE_TIME_FORMATTER)).append(&quot;\n&quot;)</span>
+<span class="fc" id="L102">                .append(&quot;End: &quot;).append(event.getEndDateTime().format(DATE_TIME_FORMATTER)).append(&quot;\n&quot;)</span>
+<span class="fc" id="L103">                .append(&quot;Location: &quot;).append(location.getName())</span>
+<span class="fc" id="L104">                .append(&quot;, &quot;).append(location.getAddressLine())</span>
+<span class="fc" id="L105">                .append(&quot;, &quot;).append(location.getCity())</span>
+<span class="fc" id="L106">                .append(&quot;, &quot;).append(location.getProvince())</span>
+<span class="fc" id="L107">                .append(&quot;, &quot;).append(location.getPostalCode())</span>
+<span class="fc" id="L108">                .append(&quot;\n\n&quot;)</span>
+<span class="fc" id="L109">                .append(&quot;Ticket Information:\n&quot;);</span>
+
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        for (Ticket ticket : tickets) {</span>
+<span class="fc" id="L112">            builder.append(LABEL_TICKET_ID).append(ticket.getTicketId())</span>
+<span class="fc" id="L113">                    .append(LABEL_PRICE).append(ticket.getPrice())</span>
+<span class="fc" id="L114">                    .append(LABEL_STATUS).append(ticket.getStatus())</span>
+<span class="fc" id="L115">                    .append(&quot;\n&quot;);</span>
+<span class="fc" id="L116">        }</span>
+
+<span class="fc" id="L118">        return builder.toString();</span>
+    }
+
+    private String buildCancellationConfirmationBody(Reservation reservation, List&lt;Ticket&gt; tickets) {
+<span class="fc" id="L122">        StringBuilder builder = new StringBuilder();</span>
+<span class="fc" id="L123">        Event event = reservation.getEvent();</span>
+
+<span class="fc" id="L125">        builder.append(&quot;Your reservation has been cancelled.\n\n&quot;)</span>
+<span class="fc" id="L126">                .append(LABEL_RESERVATION_ID).append(reservation.getReservationId()).append(&quot;\n&quot;)</span>
+<span class="fc" id="L127">                .append(LABEL_EVENT).append(event.getTitle()).append(&quot;\n&quot;)</span>
+<span class="fc" id="L128">                .append(&quot;\nInvalidated Ticket Information:\n&quot;);</span>
+
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        for (Ticket ticket : tickets) {</span>
+<span class="fc" id="L131">            TicketStatus status = ticket.getStatus();</span>
+<span class="fc" id="L132">            builder.append(LABEL_TICKET_ID).append(ticket.getTicketId())</span>
+<span class="fc" id="L133">                    .append(LABEL_PRICE).append(ticket.getPrice())</span>
+<span class="fc" id="L134">                    .append(LABEL_STATUS).append(status)</span>
+<span class="fc" id="L135">                    .append(&quot;\n&quot;);</span>
+<span class="fc" id="L136">        }</span>
+
+<span class="fc" id="L138">        return builder.toString();</span>
+    }
+
+    private String buildEventCancellationBody(Reservation reservation, List&lt;Ticket&gt; tickets) {
+<span class="fc" id="L142">        StringBuilder builder = new StringBuilder();</span>
+<span class="fc" id="L143">        Event event = reservation.getEvent();</span>
+
+<span class="fc" id="L145">        builder.append(&quot;An event you registered for was cancelled by the administrator.\n\n&quot;)</span>
+<span class="fc" id="L146">                .append(LABEL_RESERVATION_ID).append(reservation.getReservationId()).append(&quot;\n&quot;)</span>
+<span class="fc" id="L147">                .append(LABEL_EVENT).append(event.getTitle()).append(&quot;\n&quot;)</span>
+<span class="fc" id="L148">                .append(&quot;Start: &quot;).append(event.getStartDateTime().format(DATE_TIME_FORMATTER)).append(&quot;\n&quot;)</span>
+<span class="fc" id="L149">                .append(&quot;End: &quot;).append(event.getEndDateTime().format(DATE_TIME_FORMATTER)).append(&quot;\n&quot;)</span>
+<span class="fc" id="L150">                .append(&quot;\nInvalidated Ticket Information:\n&quot;);</span>
+
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        for (Ticket ticket : tickets) {</span>
+<span class="fc" id="L153">            builder.append(LABEL_TICKET_ID).append(ticket.getTicketId())</span>
+<span class="fc" id="L154">                    .append(LABEL_PRICE).append(ticket.getPrice())</span>
+<span class="fc" id="L155">                    .append(LABEL_STATUS).append(ticket.getStatus())</span>
+<span class="fc" id="L156">                    .append(&quot;\n&quot;);</span>
+<span class="fc" id="L157">        }</span>
+
+<span class="fc" id="L159">        return builder.toString();</span>
+    }
+
+    private String buildEventTimeUpdatedBody(
+            Reservation reservation,
+            List&lt;Ticket&gt; tickets,
+            String oldStartTime,
+            String oldEndTime) {
+<span class="fc" id="L167">        StringBuilder builder = new StringBuilder();</span>
+<span class="fc" id="L168">        Event event = reservation.getEvent();</span>
+
+<span class="fc" id="L170">        builder.append(&quot;The time of an event you registered for has been updated by the administrator.\n\n&quot;)</span>
+<span class="fc" id="L171">                .append(LABEL_RESERVATION_ID).append(reservation.getReservationId()).append(&quot;\n&quot;)</span>
+<span class="fc" id="L172">                .append(LABEL_EVENT).append(event.getTitle()).append(&quot;\n&quot;)</span>
+<span class="fc" id="L173">                .append(&quot;Previous Start: &quot;).append(oldStartTime).append(&quot;\n&quot;)</span>
+<span class="fc" id="L174">                .append(&quot;Previous End: &quot;).append(oldEndTime).append(&quot;\n&quot;)</span>
+<span class="fc" id="L175">                .append(&quot;New Start: &quot;).append(event.getStartDateTime().format(DATE_TIME_FORMATTER)).append(&quot;\n&quot;)</span>
+<span class="fc" id="L176">                .append(&quot;New End: &quot;).append(event.getEndDateTime().format(DATE_TIME_FORMATTER)).append(&quot;\n&quot;)</span>
+<span class="fc" id="L177">                .append(&quot;\nTicket Information:\n&quot;);</span>
+
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        for (Ticket ticket : tickets) {</span>
+<span class="fc" id="L180">            builder.append(LABEL_TICKET_ID).append(ticket.getTicketId())</span>
+<span class="fc" id="L181">                    .append(LABEL_PRICE).append(ticket.getPrice())</span>
+<span class="fc" id="L182">                    .append(LABEL_STATUS).append(ticket.getStatus())</span>
+<span class="fc" id="L183">                    .append(&quot;\n&quot;);</span>
+<span class="fc" id="L184">        }</span>
+
+<span class="fc" id="L186">        return builder.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

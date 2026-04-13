@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">backend</a> &gt; <a href="index.source.html" class="el_package">com.pestcontrol.backend.service</a> &gt; <span class="el_source">EventService.java</span></div><h1>EventService.java</h1><pre class="source lang-java linenums">package com.pestcontrol.backend.service;
+
+import com.pestcontrol.backend.api.dto.CreateEventRequest;
+import com.pestcontrol.backend.api.dto.EventLocationRequest;
+import com.pestcontrol.backend.api.dto.EventResponse;
+import com.pestcontrol.backend.api.dto.UpdateEventRequest;
+import com.pestcontrol.backend.domain.Event;
+import com.pestcontrol.backend.domain.Location;
+import com.pestcontrol.backend.domain.Reservation;
+import com.pestcontrol.backend.domain.Ticket;
+import com.pestcontrol.backend.domain.enums.Category;
+import com.pestcontrol.backend.domain.enums.EventStatus;
+import com.pestcontrol.backend.domain.enums.ReservationStatus;
+import com.pestcontrol.backend.domain.enums.TicketStatus;
+import com.pestcontrol.backend.infrastructure.repositories.EventRepository;
+import com.pestcontrol.backend.infrastructure.repositories.LocationRepository;
+import com.pestcontrol.backend.infrastructure.repositories.ReservationRepository;
+import com.pestcontrol.backend.infrastructure.repositories.TicketRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+
+@Service
+public class EventService {
+    private static final String EVENT_NOT_FOUND_MESSAGE = &quot;Event not found&quot;;
+    private static final String TITLE_REQUIRED_MESSAGE = &quot;title is required&quot;;
+
+    private final EventRepository eventRepository;
+    private final LocationRepository locationRepository;
+    private final ReservationRepository reservationRepository;
+    private final TicketRepository ticketRepository;
+    private final ReservationEmailService reservationEmailService;
+    private final Clock clock;
+
+    @Autowired
+    public EventService(
+            EventRepository eventRepository,
+            LocationRepository locationRepository,
+            ReservationRepository reservationRepository,
+            TicketRepository ticketRepository,
+            ReservationEmailService reservationEmailService) {
+<span class="nc" id="L52">        this(</span>
+                eventRepository,
+                locationRepository,
+                reservationRepository,
+                ticketRepository,
+                reservationEmailService,
+<span class="nc" id="L58">                Clock.systemUTC());</span>
+<span class="nc" id="L59">    }</span>
+
+    EventService(
+            EventRepository eventRepository,
+            LocationRepository locationRepository,
+            ReservationRepository reservationRepository,
+            TicketRepository ticketRepository,
+            ReservationEmailService reservationEmailService,
+<span class="fc" id="L67">            Clock clock) {</span>
+<span class="fc" id="L68">        this.eventRepository = eventRepository;</span>
+<span class="fc" id="L69">        this.locationRepository = locationRepository;</span>
+<span class="fc" id="L70">        this.reservationRepository = reservationRepository;</span>
+<span class="fc" id="L71">        this.ticketRepository = ticketRepository;</span>
+<span class="fc" id="L72">        this.reservationEmailService = reservationEmailService;</span>
+<span class="fc" id="L73">        this.clock = Objects.requireNonNullElse(clock, Clock.systemUTC());</span>
+<span class="fc" id="L74">    }</span>
+
+    @Transactional
+    public List&lt;EventResponse&gt; getEvents(
+            String title,
+            LocalDate startDate,
+            LocalDate endDate,
+            String location,
+            List&lt;Category&gt; categories) {
+<span class="fc" id="L83">        refreshPastStatuses();</span>
+
+<span class="pc bpc" id="L85" title="1 of 6 branches missed.">        if (startDate != null &amp;&amp; endDate != null &amp;&amp; endDate.isBefore(startDate)) {</span>
+<span class="fc" id="L86">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;endDate cannot be before startDate&quot;);</span>
+        }
+
+<span class="fc" id="L89">        String normalizedTitle = normalize(title);</span>
+<span class="fc" id="L90">        String normalizedLocation = normalize(location);</span>
+
+<span class="fc" id="L92">        return eventRepository.findAll().stream()</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                .filter(event -&gt; event.getStatus() == EventStatus.SCHEDULED)</span>
+<span class="fc" id="L94">                .filter(event -&gt; matchesTitle(event, normalizedTitle))</span>
+<span class="fc" id="L95">                .filter(event -&gt; matchesDateRange(event, startDate, endDate))</span>
+<span class="fc" id="L96">                .filter(event -&gt; matchesLocation(event, normalizedLocation))</span>
+<span class="fc" id="L97">                .filter(event -&gt; matchesCategories(event, categories))</span>
+<span class="fc" id="L98">                .sorted(Comparator.comparing(Event::getStartDateTime))</span>
+<span class="fc" id="L99">                .map(EventResponse::new)</span>
+<span class="fc" id="L100">                .toList();</span>
+    }
+
+    @Transactional
+    public EventResponse getEventById(Long eventId) {
+<span class="fc" id="L105">        refreshPastStatuses();</span>
+
+<span class="fc" id="L107">        Event event = eventRepository.findById(eventId)</span>
+<span class="fc" id="L108">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE));</span>
+
+<span class="fc" id="L110">        return new EventResponse(event);</span>
+    }
+
+    @Transactional
+    public List&lt;EventResponse&gt; getAdminEvents(String status) {
+<span class="fc" id="L115">        refreshPastStatuses();</span>
+
+        List&lt;Event&gt; events;
+<span class="fc bfc" id="L118" title="All 4 branches covered.">        if (status == null || status.isBlank()) {</span>
+<span class="fc" id="L119">            events = eventRepository.findAll();</span>
+        } else {
+<span class="fc" id="L121">            events = eventRepository.findByStatus(parseEventStatus(status));</span>
+        }
+
+<span class="fc" id="L124">        return events.stream()</span>
+<span class="fc" id="L125">                .sorted(Comparator.comparing(Event::getStartDateTime).reversed())</span>
+<span class="fc" id="L126">                .map(EventResponse::new)</span>
+<span class="fc" id="L127">                .toList();</span>
+    }
+
+    @Transactional
+    public EventResponse createEvent(Long adminUserId, CreateEventRequest request) {
+<span class="fc" id="L132">        validateRequest(request);</span>
+
+<span class="fc" id="L134">        Location location = resolveLocation(request.getLocationId(), request.getLocation());</span>
+<span class="fc" id="L135">        Event event = new Event(</span>
+                location,
+<span class="fc" id="L137">                normalizeRequired(request.getTitle(), TITLE_REQUIRED_MESSAGE),</span>
+<span class="fc" id="L138">                request.getStartDateTime(),</span>
+<span class="fc" id="L139">                request.getEndDateTime(),</span>
+<span class="fc" id="L140">                parseCategory(request.getCategory()),</span>
+<span class="fc" id="L141">                request.getBasePrice(),</span>
+                EventStatus.SCHEDULED);
+
+<span class="fc" id="L144">        Event saved = eventRepository.save(event);</span>
+<span class="fc" id="L145">        return new EventResponse(saved);</span>
+    }
+
+    @Transactional
+    public EventResponse updateEvent(Long adminUserId, Long eventId, UpdateEventRequest request) {
+<span class="fc" id="L150">        validateRequest(request);</span>
+
+<span class="fc" id="L152">        Event event = eventRepository.findById(eventId)</span>
+<span class="fc" id="L153">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE));</span>
+
+<span class="fc" id="L155">        refreshPastStatuses();</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        if (event.getStatus() != EventStatus.SCHEDULED) {</span>
+<span class="fc" id="L157">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;Only available events can be edited&quot;);</span>
+        }
+
+<span class="fc" id="L160">        Location location = resolveLocationForUpdate(event, request.getLocationId(), request.getLocation());</span>
+<span class="fc" id="L161">        OffsetDateTime previousStartDateTime = event.getStartDateTime();</span>
+<span class="fc" id="L162">        OffsetDateTime previousEndDateTime = event.getEndDateTime();</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        boolean timeChanged = !previousStartDateTime.equals(request.getStartDateTime())</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">                || !previousEndDateTime.equals(request.getEndDateTime());</span>
+
+<span class="fc" id="L166">        event.setTitle(normalizeRequired(request.getTitle(), TITLE_REQUIRED_MESSAGE));</span>
+<span class="fc" id="L167">        event.setStartDateTime(request.getStartDateTime());</span>
+<span class="fc" id="L168">        event.setEndDateTime(request.getEndDateTime());</span>
+<span class="fc" id="L169">        event.setCategory(parseCategory(request.getCategory()));</span>
+<span class="fc" id="L170">        event.setBasePrice(request.getBasePrice());</span>
+<span class="fc" id="L171">        event.setLocation(location);</span>
+
+<span class="fc" id="L173">        Event saved = eventRepository.save(event);</span>
+
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        if (timeChanged) {</span>
+<span class="fc" id="L176">            notifyActiveReservationsAboutTimeChange(</span>
+                    saved,
+                    previousStartDateTime,
+                    previousEndDateTime);
+        }
+
+<span class="fc" id="L182">        return new EventResponse(saved);</span>
+    }
+
+    @Transactional
+    public EventResponse cancelEvent(Long adminUserId, Long eventId) {
+<span class="fc" id="L187">        refreshPastStatuses();</span>
+
+<span class="fc" id="L189">        Event event = eventRepository.findById(eventId)</span>
+<span class="pc" id="L190">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, EVENT_NOT_FOUND_MESSAGE));</span>
+
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (event.getStatus() == EventStatus.CANCELLED) {</span>
+<span class="fc" id="L193">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;Event is already cancelled&quot;);</span>
+        }
+
+<span class="fc bfc" id="L196" title="All 2 branches covered.">        if (event.getStatus() == EventStatus.PAST) {</span>
+<span class="fc" id="L197">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Past events cannot be cancelled&quot;);</span>
+        }
+
+<span class="fc" id="L200">        event.setStatus(EventStatus.CANCELLED);</span>
+<span class="fc" id="L201">        Event savedEvent = eventRepository.save(event);</span>
+
+<span class="fc" id="L203">        List&lt;Reservation&gt; reservations = reservationRepository.findByEvent(savedEvent);</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        for (Reservation reservation : reservations) {</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">            if (reservation.getStatus() != ReservationStatus.CANCELLED) {</span>
+<span class="fc" id="L206">                reservation.setStatus(ReservationStatus.CANCELLED);</span>
+<span class="fc" id="L207">                reservationRepository.save(reservation);</span>
+            }
+
+<span class="fc" id="L210">            List&lt;Ticket&gt; tickets = ticketRepository.findByReservation(reservation);</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">            for (Ticket ticket : tickets) {</span>
+<span class="fc" id="L212">                ticket.setStatus(TicketStatus.VOIDED);</span>
+<span class="fc" id="L213">            }</span>
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">            if (!tickets.isEmpty()) {</span>
+<span class="fc" id="L215">                ticketRepository.saveAll(tickets);</span>
+            }
+
+<span class="fc bfc" id="L218" title="All 2 branches covered.">            if (reservation.getUser().getEmail() != null) {</span>
+<span class="fc" id="L219">                reservationEmailService.sendEventCancellationConfirmation(</span>
+<span class="fc" id="L220">                        reservation.getUser().getEmail(),</span>
+                        reservation,
+                        tickets);
+            }
+<span class="fc" id="L224">        }</span>
+
+<span class="fc" id="L226">        return new EventResponse(savedEvent);</span>
+    }
+
+    private boolean matchesTitle(Event event, String title) {
+<span class="fc bfc" id="L230" title="All 2 branches covered.">        if (title == null) {</span>
+<span class="fc" id="L231">            return true;</span>
+        }
+<span class="pc bpc" id="L233" title="1 of 4 branches missed.">        return event.getTitle() != null &amp;&amp; event.getTitle().toLowerCase().contains(title);</span>
+    }
+
+    private boolean matchesDateRange(Event event, LocalDate startDate, LocalDate endDate) {
+<span class="fc" id="L237">        LocalDate eventDate = event.getStartDateTime().toLocalDate();</span>
+
+<span class="pc bpc" id="L239" title="1 of 6 branches missed.">        return (startDate == null || !eventDate.isBefore(startDate))</span>
+<span class="pc bpc" id="L240" title="1 of 2 branches missed.">                &amp;&amp; (endDate == null || !eventDate.isAfter(endDate));</span>
+    }
+
+    private boolean matchesLocation(Event event, String locationQuery) {
+<span class="fc bfc" id="L244" title="All 2 branches covered.">        if (locationQuery == null) {</span>
+<span class="fc" id="L245">            return true;</span>
+        }
+
+<span class="fc" id="L248">        String name = normalize(event.getLocation().getName());</span>
+<span class="fc" id="L249">        String city = normalize(event.getLocation().getCity());</span>
+<span class="fc" id="L250">        String province = normalize(event.getLocation().getProvince());</span>
+
+<span class="pc bpc" id="L252" title="4 of 6 branches missed.">        return contains(name, locationQuery) || contains(city, locationQuery) || contains(province, locationQuery);</span>
+    }
+
+    private boolean matchesCategories(Event event, List&lt;Category&gt; categories) {
+<span class="fc bfc" id="L256" title="All 4 branches covered.">        if (categories == null || categories.isEmpty()) {</span>
+<span class="fc" id="L257">            return true;</span>
+        }
+
+<span class="fc" id="L260">        return categories.contains(event.getCategory());</span>
+    }
+
+    private String normalize(String value) {
+<span class="fc bfc" id="L264" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L265">            return null;</span>
+        }
+
+<span class="fc" id="L268">        String trimmed = value.trim().toLowerCase();</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">        return trimmed.isEmpty() ? null : trimmed;</span>
+    }
+
+    private boolean contains(String fieldValue, String query) {
+<span class="pc bpc" id="L273" title="1 of 4 branches missed.">        return fieldValue != null &amp;&amp; fieldValue.contains(query);</span>
+    }
+
+    private void refreshPastStatuses() {
+<span class="fc" id="L277">        OffsetDateTime now = OffsetDateTime.now(clock);</span>
+<span class="fc" id="L278">        List&lt;Event&gt; scheduledEvents = eventRepository.findByStatus(EventStatus.SCHEDULED);</span>
+<span class="fc" id="L279">        List&lt;Event&gt; endedEvents = scheduledEvents.stream()</span>
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">                .filter(event -&gt; !event.getEndDateTime().isAfter(now))</span>
+<span class="fc" id="L281">                .toList();</span>
+
+<span class="fc bfc" id="L283" title="All 2 branches covered.">        if (endedEvents.isEmpty()) {</span>
+<span class="fc" id="L284">            return;</span>
+        }
+
+<span class="fc bfc" id="L287" title="All 2 branches covered.">        for (Event event : endedEvents) {</span>
+<span class="fc" id="L288">            event.setStatus(EventStatus.PAST);</span>
+<span class="fc" id="L289">        }</span>
+<span class="fc" id="L290">        eventRepository.saveAll(endedEvents);</span>
+<span class="fc" id="L291">    }</span>
+
+    private void validateRequest(CreateEventRequest request) {
+<span class="fc bfc" id="L294" title="All 2 branches covered.">        if (request == null) {</span>
+<span class="fc" id="L295">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Request body is required&quot;);</span>
+        }
+<span class="fc" id="L297">        validateDatesAndPrice(request.getStartDateTime(), request.getEndDateTime(), request.getBasePrice());</span>
+<span class="fc" id="L298">        normalizeRequired(request.getTitle(), TITLE_REQUIRED_MESSAGE);</span>
+<span class="fc" id="L299">        parseCategory(request.getCategory());</span>
+<span class="fc" id="L300">        ensureLocationPayload(request.getLocationId(), request.getLocation());</span>
+<span class="fc" id="L301">    }</span>
+
+    private void validateRequest(UpdateEventRequest request) {
+<span class="pc bpc" id="L304" title="1 of 2 branches missed.">        if (request == null) {</span>
+<span class="nc" id="L305">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Request body is required&quot;);</span>
+        }
+<span class="fc" id="L307">        validateDatesAndPrice(request.getStartDateTime(), request.getEndDateTime(), request.getBasePrice());</span>
+<span class="fc" id="L308">        normalizeRequired(request.getTitle(), TITLE_REQUIRED_MESSAGE);</span>
+<span class="fc" id="L309">        parseCategory(request.getCategory());</span>
+<span class="fc" id="L310">        ensureLocationPayload(request.getLocationId(), request.getLocation());</span>
+<span class="fc" id="L311">    }</span>
+
+    private void validateDatesAndPrice(OffsetDateTime startDateTime, OffsetDateTime endDateTime, BigDecimal basePrice) {
+<span class="pc bpc" id="L314" title="1 of 4 branches missed.">        if (startDateTime == null || endDateTime == null) {</span>
+<span class="fc" id="L315">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;startDateTime and endDateTime are required&quot;);</span>
+        }
+<span class="fc bfc" id="L317" title="All 2 branches covered.">        if (!endDateTime.isAfter(startDateTime)) {</span>
+<span class="fc" id="L318">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;endDateTime must be after startDateTime&quot;);</span>
+        }
+<span class="fc bfc" id="L320" title="All 2 branches covered.">        if (!startDateTime.isAfter(OffsetDateTime.now(clock))) {</span>
+<span class="fc" id="L321">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;startDateTime must be in the future&quot;);</span>
+        }
+<span class="pc bpc" id="L323" title="1 of 4 branches missed.">        if (basePrice == null || basePrice.compareTo(BigDecimal.ZERO) &lt;= 0) {</span>
+<span class="fc" id="L324">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;basePrice must be greater than 0&quot;);</span>
+        }
+<span class="fc" id="L326">    }</span>
+
+    private Category parseCategory(String categoryText) {
+<span class="fc" id="L329">        String normalized = normalizeRequired(categoryText, &quot;category is required&quot;);</span>
+        try {
+<span class="fc" id="L331">            return Category.valueOf(normalized.toUpperCase());</span>
+<span class="fc" id="L332">        } catch (IllegalArgumentException ex) {</span>
+<span class="fc" id="L333">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Invalid category value&quot;);</span>
+        }
+    }
+
+    private EventStatus parseEventStatus(String statusText) {
+        try {
+<span class="fc" id="L339">            return EventStatus.valueOf(statusText.trim().toUpperCase());</span>
+<span class="fc" id="L340">        } catch (IllegalArgumentException ex) {</span>
+<span class="fc" id="L341">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Invalid status value&quot;);</span>
+        }
+    }
+
+    private Location resolveLocation(Long locationId, EventLocationRequest locationRequest) {
+<span class="fc bfc" id="L346" title="All 2 branches covered.">        if (locationId != null) {</span>
+<span class="fc" id="L347">            return locationRepository.findById(locationId)</span>
+<span class="pc" id="L348">                    .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Location not found&quot;));</span>
+        }
+
+<span class="fc" id="L351">        return createLocation(locationRequest);</span>
+    }
+
+    private Location resolveLocationForUpdate(Event event, Long locationId, EventLocationRequest locationRequest) {
+<span class="pc bpc" id="L355" title="3 of 4 branches missed.">        if (locationId != null || locationRequest != null) {</span>
+<span class="fc" id="L356">            return resolveLocation(locationId, locationRequest);</span>
+        }
+<span class="nc" id="L358">        return event.getLocation();</span>
+    }
+
+    private Location createLocation(EventLocationRequest locationRequest) {
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">        if (locationRequest == null) {</span>
+<span class="nc" id="L363">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Either locationId or location must be provided&quot;);</span>
+        }
+
+<span class="fc" id="L366">        Location location = new Location(</span>
+<span class="fc" id="L367">                normalizeRequired(locationRequest.getName(), &quot;location.name is required&quot;),</span>
+<span class="fc" id="L368">                normalizeRequired(locationRequest.getAddressLine(), &quot;location.addressLine is required&quot;),</span>
+<span class="fc" id="L369">                normalizeRequired(locationRequest.getCity(), &quot;location.city is required&quot;),</span>
+<span class="fc" id="L370">                normalizeRequired(locationRequest.getProvince(), &quot;location.province is required&quot;),</span>
+<span class="fc" id="L371">                normalizeRequired(locationRequest.getPostalCode(), &quot;location.postalCode is required&quot;));</span>
+<span class="fc" id="L372">        return locationRepository.save(location);</span>
+    }
+
+    private void ensureLocationPayload(Long locationId, EventLocationRequest locationRequest) {
+<span class="fc bfc" id="L376" title="All 4 branches covered.">        if (locationId == null &amp;&amp; locationRequest == null) {</span>
+<span class="fc" id="L377">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Either locationId or location must be provided&quot;);</span>
+        }
+<span class="fc" id="L379">    }</span>
+
+    private void notifyActiveReservationsAboutTimeChange(
+            Event event,
+            OffsetDateTime previousStartDateTime,
+            OffsetDateTime previousEndDateTime) {
+<span class="fc" id="L385">        List&lt;Reservation&gt; reservations = reservationRepository.findByEvent(event);</span>
+
+<span class="fc" id="L387">        String oldStartTime = previousStartDateTime</span>
+<span class="fc" id="L388">                .format(java.time.format.DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm 'UTC'&quot;));</span>
+<span class="fc" id="L389">        String oldEndTime = previousEndDateTime</span>
+<span class="fc" id="L390">                .format(java.time.format.DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm 'UTC'&quot;));</span>
+
+<span class="fc bfc" id="L392" title="All 2 branches covered.">        for (Reservation reservation : reservations) {</span>
+<span class="fc bfc" id="L393" title="All 2 branches covered.">            if (reservation.getStatus() == ReservationStatus.CANCELLED) {</span>
+<span class="fc" id="L394">                continue;</span>
+            }
+
+<span class="fc" id="L397">            List&lt;Ticket&gt; tickets = ticketRepository.findByReservation(reservation);</span>
+<span class="fc bfc" id="L398" title="All 2 branches covered.">            if (reservation.getUser().getEmail() != null) {</span>
+<span class="fc" id="L399">                reservationEmailService.sendEventTimeUpdatedConfirmation(</span>
+<span class="fc" id="L400">                        reservation.getUser().getEmail(),</span>
+                        reservation,
+                        tickets,
+                        oldStartTime,
+                        oldEndTime);
+            }
+<span class="fc" id="L406">        }</span>
+<span class="fc" id="L407">    }</span>
+
+    private String normalizeRequired(String value, String errorMessage) {
+<span class="fc bfc" id="L410" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L411">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errorMessage);</span>
+        }
+
+<span class="fc" id="L414">        String trimmed = value.trim();</span>
+<span class="fc bfc" id="L415" title="All 2 branches covered.">        if (trimmed.isEmpty()) {</span>
+<span class="fc" id="L416">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errorMessage);</span>
+        }
+
+<span class="fc" id="L419">        return trimmed;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
