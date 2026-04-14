@@ -16,6 +16,25 @@ export const styles = StyleSheet.create({
     width: 340,
     gap: 14,
   },
+  welcomeTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#f0e6d3",
+    alignSelf: "center",
+  },
+  appNameHighlight: {
+    color: "#e5be86",
+  },
+  welcomeSubtext: {
+    marginTop: -20,
+    marginBottom: 4,
+    alignSelf: "center",
+    color: "#8f8578",
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+  },
   tabs: {
     flexDirection: "row",
     borderBottomWidth: 1,

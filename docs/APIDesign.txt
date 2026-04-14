@@ -1,0 +1,562 @@
+================================================================================
+                    1. AUTHENTICATION CONTROLLER (/auth)
+================================================================================
+
+The Authentication Controller manages user registration and login operations.
+All endpoints are publicly accessible and do not require authentication.
+
+────────────────────────────────────────────────────────────────────────────
+1.1 Register User
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: POST /auth/register
+Description: Register a new user account in the system
+
+Request:
+{
+  "fullName": "string",
+  "email": "string",
+  "phoneNumber": "string",
+  "password": "string"
+}
+
+Response (Success - 200 OK):
+  (No response body - void response)
+
+Possible Errors:
+  - 400 Bad Request: Invalid input data or validation constraints not met
+  - 409 Conflict: User with provided email already exists
+  - 500 Internal Server Error: Database or system error
+
+
+────────────────────────────────────────────────────────────────────────────
+1.2 Login User
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: POST /auth/login
+Description: Authenticate user and receive JWT token for subsequent requests
+
+Request:
+{
+  "email": "string",
+  "phoneNumber": "string",
+  "password": "string"
+}
+
+Note: Either email or phoneNumber can be used for authentication, along with password.
+
+Response (Success - 200 OK):
+{
+  "token": "string (JWT token for subsequent authenticated requests)",
+  "user": {
+    "userId": "number",
+    "fullName": "string",
+    "email": "string",
+    "phoneNumber": "string",
+    "userRole": "string (USER or ADMIN)"
+  }
+}
+
+Possible Errors:
+  - 400 Bad Request: Invalid input data
+  - 401 Unauthorized: Invalid email/phone number or password
+  - 500 Internal Server Error: Database or system error
+
+
+================================================================================
+                      2. EVENT CONTROLLER (/events)
+================================================================================
+
+The Event Controller manages retrieval of event information. All endpoints are
+publicly accessible and do not require authentication.
+
+────────────────────────────────────────────────────────────────────────────
+2.1 List Events (with optional filters)
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: GET /events
+Description: Retrieve a list of events with optional filtering by title, date
+range, location, and categories
+
+Query Parameters (all optional):
+  - title: string - Filter by event title (partial match)
+  - startDate: string (YYYY-MM-DD format) - Filter by start date range
+  - endDate: string (YYYY-MM-DD format) - Filter by end date range
+  - location: string - Filter by location
+  - categories: string (comma-separated) - Filter by categories
+    (e.g., "WORKSHOPS,SEMINARS")
+
+Request:
+  (No request body - parameters passed in query string)
+
+Response (Success - 200 OK):
+[
+  {
+    "eventId": "number",
+    "title": "string",
+    "startDateTime": "string (ISO 8601 offset date-time)",
+    "endDateTime": "string (ISO 8601 offset date-time)",
+    "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+    "basePrice": "decimal (currency amount)",
+    "status": "string (SCHEDULED, ONGOING, COMPLETED, CANCELLED)",
+    "location": {
+      "locationId": "number",
+      "name": "string",
+      "addressLine": "string",
+      "city": "string",
+      "province": "string",
+      "postalCode": "string"
+    }
+  }
+]
+
+Possible Errors:
+  - 400 Bad Request: Invalid category value or invalid date format
+  - 500 Internal Server Error: Database or system error
+
+
+────────────────────────────────────────────────────────────────────────────
+2.2 Get Event by ID
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: GET /events/{eventId}
+Description: Retrieve detailed information for a specific event by ID
+
+Path Parameters:
+  - eventId: number - The unique identifier of the event
+
+Request:
+  (No request body)
+
+Response (Success - 200 OK):
+{
+  "eventId": "number",
+  "title": "string",
+  "startDateTime": "string (ISO 8601 offset date-time)",
+  "endDateTime": "string (ISO 8601 offset date-time)",
+  "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+  "basePrice": "decimal (currency amount)",
+  "status": "string (SCHEDULED, ONGOING, COMPLETED, CANCELLED)",
+  "location": {
+    "locationId": "number",
+    "name": "string",
+    "addressLine": "string",
+    "city": "string",
+    "province": "string",
+    "postalCode": "string"
+  }
+}
+
+Possible Errors:
+  - 404 Not Found: Event with specified ID does not exist
+  - 500 Internal Server Error: Database or system error
+
+
+────────────────────────────────────────────────────────────────────────────
+2.3 Get Admin Events (Admin only)
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: GET /events/admin
+Description: Retrieve all events for admin management with optional status filter
+
+Headers Required:
+  - Authorization: "Bearer <JWT_TOKEN>" (ADMIN role required)
+
+Query Parameters (optional):
+  - status: string - Filter by event status (SCHEDULED, ONGOING, COMPLETED, CANCELLED)
+
+Request:
+  (No request body - parameters passed in query string)
+
+Response (Success - 200 OK):
+[
+  {
+    "eventId": "number",
+    "title": "string",
+    "startDateTime": "string (ISO 8601 offset date-time)",
+    "endDateTime": "string (ISO 8601 offset date-time)",
+    "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+    "basePrice": "decimal (currency amount)",
+    "status": "string (SCHEDULED, ONGOING, COMPLETED, CANCELLED)",
+    "location": {
+      "locationId": "number",
+      "name": "string",
+      "addressLine": "string",
+      "city": "string",
+      "province": "string",
+      "postalCode": "string"
+    }
+  }
+]
+
+Possible Errors:
+  - 401 Unauthorized: Missing or invalid JWT token
+  - 403 Forbidden: User is not an admin
+  - 500 Internal Server Error: Database or system error
+
+
+────────────────────────────────────────────────────────────────────────────
+2.4 Create Event (Admin only)
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: POST /events/admin
+Description: Create a new event with location information
+
+Headers Required:
+  - Authorization: "Bearer <JWT_TOKEN>" (ADMIN role required)
+
+Request:
+{
+  "title": "string",
+  "startDateTime": "string (ISO 8601 offset date-time)",
+  "endDateTime": "string (ISO 8601 offset date-time)",
+  "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+  "basePrice": "decimal (currency amount)",
+  "locationId": "number (optional - if existing location)",
+  "location": {
+    "name": "string",
+    "addressLine": "string",
+    "city": "string",
+    "province": "string",
+    "postalCode": "string"
+  }
+}
+
+Note: Either locationId or location object can be provided to specify the event location.
+
+Response (Success - 201 Created):
+{
+  "eventId": "number",
+  "title": "string",
+  "startDateTime": "string (ISO 8601 offset date-time)",
+  "endDateTime": "string (ISO 8601 offset date-time)",
+  "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+  "basePrice": "decimal (currency amount)",
+  "status": "string (SCHEDULED, ONGOING, COMPLETED, CANCELLED)",
+  "location": {
+    "locationId": "number",
+    "name": "string",
+    "addressLine": "string",
+    "city": "string",
+    "province": "string",
+    "postalCode": "string"
+  }
+}
+
+Possible Errors:
+  - 400 Bad Request: Invalid input data or location not found
+  - 401 Unauthorized: Missing or invalid JWT token
+  - 403 Forbidden: User is not an admin
+  - 500 Internal Server Error: Database or system error
+
+
+────────────────────────────────────────────────────────────────────────────
+2.5 Update Event (Admin only)
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: PUT /events/admin/{eventId}
+Description: Update an existing event's information
+
+Headers Required:
+  - Authorization: "Bearer <JWT_TOKEN>" (ADMIN role required)
+
+Path Parameters:
+  - eventId: number - The unique identifier of the event to update
+
+Request:
+{
+  "title": "string",
+  "startDateTime": "string (ISO 8601 offset date-time)",
+  "endDateTime": "string (ISO 8601 offset date-time)",
+  "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+  "basePrice": "decimal (currency amount)",
+  "locationId": "number (optional - if existing location)",
+  "location": {
+    "name": "string",
+    "addressLine": "string",
+    "city": "string",
+    "province": "string",
+    "postalCode": "string"
+  }
+}
+
+Response (Success - 200 OK):
+{
+  "eventId": "number",
+  "title": "string",
+  "startDateTime": "string (ISO 8601 offset date-time)",
+  "endDateTime": "string (ISO 8601 offset date-time)",
+  "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+  "basePrice": "decimal (currency amount)",
+  "status": "string (SCHEDULED, ONGOING, COMPLETED, CANCELLED)",
+  "location": {
+    "locationId": "number",
+    "name": "string",
+    "addressLine": "string",
+    "city": "string",
+    "province": "string",
+    "postalCode": "string"
+  }
+}
+
+Possible Errors:
+  - 400 Bad Request: Invalid input data or location not found
+  - 401 Unauthorized: Missing or invalid JWT token
+  - 403 Forbidden: User is not an admin
+  - 404 Not Found: Event with specified ID does not exist
+  - 500 Internal Server Error: Database or system error
+
+
+────────────────────────────────────────────────────────────────────────────
+2.6 Cancel Event (Admin only)
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: DELETE /events/admin/{eventId}
+Description: Cancel an existing event and cancel all associated reservations
+
+Headers Required:
+  - Authorization: "Bearer <JWT_TOKEN>" (ADMIN role required)
+
+Path Parameters:
+  - eventId: number - The unique identifier of the event to cancel
+
+Request:
+  (No request body)
+
+Response (Success - 200 OK):
+{
+  "eventId": "number",
+  "title": "string",
+  "startDateTime": "string (ISO 8601 offset date-time)",
+  "endDateTime": "string (ISO 8601 offset date-time)",
+  "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+  "basePrice": "decimal (currency amount)",
+  "status": "string (CANCELLED)",
+  "location": {
+    "locationId": "number",
+    "name": "string",
+    "addressLine": "string",
+    "city": "string",
+    "province": "string",
+    "postalCode": "string"
+  }
+}
+
+Possible Errors:
+  - 401 Unauthorized: Missing or invalid JWT token
+  - 403 Forbidden: User is not an admin
+  - 404 Not Found: Event with specified ID does not exist
+  - 500 Internal Server Error: Database or system error
+
+
+================================================================================
+                   3. RESERVATION CONTROLLER (/reservations)
+================================================================================
+
+The Reservation Controller manages event reservations and ticket bookings.
+All endpoints require authentication via JWT token in the Authorization header.
+
+Authentication: Include "Authorization: Bearer <JWT_TOKEN>" header in all requests
+
+────────────────────────────────────────────────────────────────────────────
+3.1 Create Reservation
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: POST /reservations
+Description: Create a new reservation for an event
+
+Headers Required:
+  - Authorization: "Bearer <JWT_TOKEN>"
+
+Request:
+{
+  "eventId": "number",
+  "quantity": "number (number of tickets to reserve)"
+}
+
+Response (Success - 201 Created):
+{
+  "reservationId": "number",
+  "reservationStatus": "string (CONFIRMED, PENDING, CANCELLED)",
+  "interactionStatus": "string",
+  "creationDate": "string (ISO 8601 offset date-time)",
+  "ticketCount": "number",
+  "event": {
+    "eventId": "number",
+    "title": "string",
+    "startDateTime": "string (ISO 8601 offset date-time)",
+    "endDateTime": "string (ISO 8601 offset date-time)",
+    "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+    "basePrice": "decimal (currency amount)",
+    "status": "string (SCHEDULED, ONGOING, COMPLETED, CANCELLED)",
+    "location": {
+      "locationId": "number",
+      "name": "string",
+      "addressLine": "string",
+      "city": "string",
+      "province": "string",
+      "postalCode": "string"
+    }
+  }
+}
+
+Possible Errors:
+  - 400 Bad Request: Invalid input data or insufficient tickets available
+  - 401 Unauthorized: Missing or invalid JWT token
+  - 404 Not Found: Event with specified ID does not exist
+  - 500 Internal Server Error: Database or system error
+
+
+────────────────────────────────────────────────────────────────────────────
+3.2 Get Current Reservations
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: GET /reservations/current
+Description: Retrieve all active/current reservations for the authenticated user
+
+Headers Required:
+  - Authorization: "Bearer <JWT_TOKEN>"
+
+Request:
+  (No request body)
+
+Response (Success - 200 OK):
+[
+  {
+    "reservationId": "number",
+    "reservationStatus": "string (CONFIRMED, PENDING, CANCELLED)",
+    "interactionStatus": "string",
+    "creationDate": "string (ISO 8601 offset date-time)",
+    "ticketCount": "number",
+    "event": {
+      "eventId": "number",
+      "title": "string",
+      "startDateTime": "string (ISO 8601 offset date-time)",
+      "endDateTime": "string (ISO 8601 offset date-time)",
+      "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+      "basePrice": "decimal (currency amount)",
+      "status": "string (SCHEDULED, ONGOING, COMPLETED, CANCELLED)",
+      "location": {
+        "locationId": "number",
+        "name": "string",
+        "addressLine": "string",
+        "city": "string",
+        "province": "string",
+        "postalCode": "string"
+      }
+    }
+  }
+]
+
+Possible Errors:
+  - 401 Unauthorized: Missing or invalid JWT token
+  - 500 Internal Server Error: Database or system error
+
+
+────────────────────────────────────────────────────────────────────────────
+3.3 Get Interacted Events
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: GET /reservations/interacted
+Description: Retrieve all events the user has previously reserved or interacted with
+
+Headers Required:
+  - Authorization: "Bearer <JWT_TOKEN>"
+
+Request:
+  (No request body)
+
+Response (Success - 200 OK):
+[
+  {
+    "reservationId": "number",
+    "reservationStatus": "string (CONFIRMED, PENDING, CANCELLED)",
+    "interactionStatus": "string",
+    "creationDate": "string (ISO 8601 offset date-time)",
+    "ticketCount": "number",
+    "event": {
+      "eventId": "number",
+      "title": "string",
+      "startDateTime": "string (ISO 8601 offset date-time)",
+      "endDateTime": "string (ISO 8601 offset date-time)",
+      "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+      "basePrice": "decimal (currency amount)",
+      "status": "string (SCHEDULED, ONGOING, COMPLETED, CANCELLED)",
+      "location": {
+        "locationId": "number",
+        "name": "string",
+        "addressLine": "string",
+        "city": "string",
+        "province": "string",
+        "postalCode": "string"
+      }
+    }
+  }
+]
+
+Possible Errors:
+  - 401 Unauthorized: Missing or invalid JWT token
+  - 500 Internal Server Error: Database or system error
+
+
+────────────────────────────────────────────────────────────────────────────
+3.4 Cancel Reservation
+────────────────────────────────────────────────────────────────────────────
+
+Endpoint: DELETE /reservations/{reservationId}
+Description: Cancel an existing reservation and free up reserved tickets
+
+Headers Required:
+  - Authorization: "Bearer <JWT_TOKEN>"
+
+Path Parameters:
+  - reservationId: number - The unique identifier of the reservation to cancel
+
+Request:
+  (No request body)
+
+Response (Success - 200 OK):
+{
+  "reservationId": "number",
+  "reservationStatus": "string (CONFIRMED, PENDING, CANCELLED)",
+  "interactionStatus": "string",
+  "creationDate": "string (ISO 8601 offset date-time)",
+  "ticketCount": "number",
+  "event": {
+    "eventId": "number",
+    "title": "string",
+    "startDateTime": "string (ISO 8601 offset date-time)",
+    "endDateTime": "string (ISO 8601 offset date-time)",
+    "category": "string (WORKSHOPS, SEMINARS, TRAINING, etc.)",
+    "basePrice": "decimal (currency amount)",
+    "status": "string (SCHEDULED, ONGOING, COMPLETED, CANCELLED)",
+    "location": {
+      "locationId": "number",
+      "name": "string",
+      "addressLine": "string",
+      "city": "string",
+      "province": "string",
+      "postalCode": "string"
+    }
+  }
+}
+
+Possible Errors:
+  - 401 Unauthorized: Missing or invalid JWT token
+  - 403 Forbidden: User is not authorized to cancel this reservation
+  - 404 Not Found: Reservation with specified ID does not exist
+  - 500 Internal Server Error: Database or system error
+
+
+================================================================================
+                            AUTHENTICATION
+================================================================================
+
+The API uses JWT (JSON Web Tokens) for authentication. After successful login,
+clients receive a token that must be included in the Authorization header for
+all subsequent authenticated requests.
+
+Format: Authorization: Bearer <JWT_TOKEN>
+
+Tokens are stateless and contain user information needed to authenticate requests.
+If a token is invalid or expired, endpoints will return 401 Unauthorized.
